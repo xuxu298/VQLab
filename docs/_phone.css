@@ -1,0 +1,97 @@
+/* Phone-reading PDF style for QKD architecture doc.
+   A5 portrait: balances readable prose with 6-column BOM tables. */
+
+@page {
+  size: A5 portrait;          /* 148 x 210 mm — fills a phone screen at fit-to-width */
+  margin: 10mm 9mm 12mm 9mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-family: "Noto Sans", "DejaVu Sans", sans-serif;
+    font-size: 7pt;
+    color: #888;
+  }
+}
+
+html { font-size: 11pt; }
+
+body {
+  font-family: "Noto Sans", "DejaVu Sans", "Noto Color Emoji", sans-serif;
+  line-height: 1.45;
+  color: #1a1a1a;
+  hyphens: none;
+  word-wrap: break-word;
+}
+
+h1 { font-size: 1.55rem; line-height: 1.2; color: #0b3d91; margin: 0 0 .3em; }
+h2 {
+  font-size: 1.2rem; color: #0b3d91; margin: 1.1em 0 .35em;
+  border-bottom: 2px solid #0b3d91; padding-bottom: 2px;
+  break-after: avoid;
+}
+h3 { font-size: 1.02rem; color: #1d4ed8; margin: .8em 0 .3em; break-after: avoid; }
+
+p, li { margin: .3em 0; }
+
+/* ---- Tables: let everything wrap, never overflow the narrow page ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.6pt;
+  line-height: 1.3;
+  margin: .5em 0;
+  table-layout: auto;
+}
+th, td {
+  border: 0.5pt solid #bbb;
+  padding: 2.5pt 3pt;
+  text-align: left;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+thead th {
+  background: #0b3d91;
+  color: #fff;
+  font-weight: 600;
+}
+tbody tr:nth-child(even) { background: #eef3fb; }
+thead { display: table-header-group; }   /* repeat header on each page */
+tr { break-inside: avoid; }
+
+/* ---- Block diagram (wide ASCII art): small mono, zoom on phone ---- */
+pre {
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 5pt;
+  line-height: 1.08;
+  background: #f6f7f9;
+  border: 0.5pt solid #d0d4da;
+  border-radius: 3px;
+  padding: 5pt;
+  white-space: pre;
+  overflow: hidden;
+}
+
+/* inline code */
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 0.85em; }
+p code, li code, td code { background: #eef0f3; padding: 0 2px; border-radius: 2px; }
+
+/* ---- "Giải thích" blockquotes: clearly set apart ---- */
+blockquote {
+  margin: .6em 0;
+  padding: 5pt 8pt;
+  background: #f1f7ee;          /* soft green = explanation layer */
+  border-left: 3px solid #4a9b3f;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.95rem;
+}
+blockquote p:first-child { margin-top: 0; }
+blockquote p:last-child { margin-bottom: 0; }
+blockquote ul { margin: .25em 0; padding-left: 1.1em; }
+blockquote strong { color: #2f6e27; }
+
+/* The two ⚠️/📖 top callouts read as warnings, not explanations */
+blockquote:first-of-type { background: #fdf6e3; border-left-color: #d9a400; }
+
+hr { border: none; border-top: 1px solid #ccc; margin: 1em 0; }
+
+strong { color: #111; }

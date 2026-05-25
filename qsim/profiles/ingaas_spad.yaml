@@ -1,0 +1,63 @@
+name: ingaas_spad_metro
+description: >
+  Calibration profile for the M0 BB84 reference slice — a gated InGaAs/InP SPAD metro
+  link at 1550 nm. Values are representative/datasheet-class and MUST be tightened against
+  the specific detector + measurements before any quantitative claim (spec §7). Each param
+  carries its provenance.
+
+params:
+  rep_rate:
+    value: 1.0e8
+    unit: Hz
+    source: "design-target: docs/01 §0 (clock starts 100 MHz -> 1 GHz)"
+    note: "Phase-1 clock rate"
+  mu_signal:
+    value: 0.5
+    unit: photons/pulse
+    source: "design-target: docs/01 §0 (mu ~ 0.4-0.5)"
+    note: "signal-state mean photon number"
+  fiber_alpha:
+    value: 0.2
+    unit: dB/km
+    source: "ITU-T G.652 standard SMF, C-band low-loss window"
+    note: "1550 nm attenuation"
+  visibility:
+    value: 0.98
+    unit: ""
+    source: "typical phase-encoding QKD AMZI interference visibility"
+    note: "intrinsic optical error e_opt = (1-V)/2 = 1%"
+  bob_transmittance:
+    value: 0.45
+    unit: ""
+    source: "estimate: AMZI + DWDM filter + connectors ~ -3.5 dB"
+    note: "Bob-side optical insertion loss"
+  eta_det:
+    value: 0.20
+    unit: ""
+    source: "datasheet-class: gated InGaAs/InP SPAD ~20-25% at 1550 nm"
+    note: "single-photon detection efficiency"
+  p_dark:
+    value: 1.0e-5
+    unit: per-gate
+    source: "gated InGaAs SPAD characterisation, arXiv:1105.3760-class"
+    note: "dark-count probability per gate; trades against efficiency"
+  afterpulse_amp:
+    value: 0.04
+    unit: ""
+    source: "arXiv:1105.3760 (afterpulse probability a few % at hundreds of MHz)"
+    note: "mean-field afterpulse prob = amp * recent_click_rate"
+  dead_time:
+    value: 1.0e-8
+    unit: s
+    source: "typical gated InGaAs dead time ~10 ns"
+    note: "live duty = 1/(1 + count_rate*dead_time)"
+  drift_theta:
+    value: 2.0
+    unit: 1/s
+    source: "model: thermal/mechanical phase-drift mean reversion"
+    note: "OU reversion rate"
+  drift_sigma:
+    value: 1.4
+    unit: rad/sqrt(s)
+    source: "model: tuned to ~0.7 rad stationary std when unlocked"
+    note: "OU volatility"

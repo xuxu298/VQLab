@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qsim"
+version = "0.0.1"
+description = "Open-source, device-level quantum-technology simulation platform (M0: QKD slice)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.23",
+    "scipy>=1.9",
+    "matplotlib>=3.6",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# sensing (M3) and qc-hardware (M4) backends will use QuTiP; not needed for M0.
+quantum = ["qutip>=4.7"]
+dev = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+include = ["qsim*"]
+
+[tool.setuptools.package-data]
+qsim = ["profiles/*.yaml"]

@@ -18,6 +18,7 @@ from .impairments import (
 )
 from .calibration import CalibrationProfile, CalParam
 from .probes import TimeSeriesProbe
+from .sweep import SweepResult, OptimizeResult, sweep, optimize
 
 __all__ = [
     "SignalType",
@@ -38,4 +39,8 @@ __all__ = [
     "CalibrationProfile",
     "CalParam",
     "TimeSeriesProbe",
+    "SweepResult",
+    "OptimizeResult",
+    "sweep",
+    "optimize",
 ]

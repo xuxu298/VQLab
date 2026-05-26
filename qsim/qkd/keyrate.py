@@ -62,7 +62,11 @@ def skr_for_params(
     )
     r = secret_key_length(counts, mu1=mu1, mu2=mu2, p_mu1=p_mu1, p_mu2=1.0 - p_mu1,
                           eps_sec=eps_sec, eps_cor=eps_cor, f_ec=f_ec)
-    return r.length * rep_rate / n_total, n_total
+    # Dead time caps the detection rate: duty = 1/(1 + R*Q_avg*tau). The engine path applies
+    # this inside the detector already; here (analytic channel) we fold it in so both agree.
+    q_avg = p_mu1 * Q1 + (1.0 - p_mu1) * Q2
+    duty = 1.0 / (1.0 + rep_rate * q_avg * params.tau_dead) if params.tau_dead > 0 else 1.0
+    return r.length * rep_rate / n_total * duty, n_total / duty
 
 
 def optimize_skr(

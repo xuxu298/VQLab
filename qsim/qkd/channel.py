@@ -29,6 +29,7 @@ class ChannelParams:
     fiber_alpha: float = 0.2  # dB/km
     p_dc: float = 1e-7        # dark-count probability per pulse, per detector
     e_d: float = 0.005        # intrinsic optical/misalignment error (e_opt)
+    tau_dead: float = 0.0     # detector dead time (s); 0 = ignore (caps the count rate)
 
 
 def gain_qber(mu: float, eta: float, p_dc: float, e_d: float) -> tuple[float, float]:

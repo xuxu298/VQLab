@@ -1,0 +1,13 @@
+# Beam-splitter QRNG with well-matched detectors — should give near-ideal min-entropy.
+name: qrng_balanced
+kind: qrng
+builder_args:
+  mu: 0.5
+  eta_a: 0.20
+  eta_b: 0.20
+  p_dark_a: 1.0e-5
+  p_dark_b: 1.0e-5
+run:
+  n_ticks: 200
+  pulses_per_tick: 200000
+  seed: 1

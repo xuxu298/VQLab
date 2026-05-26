@@ -1,0 +1,19 @@
+# Decoy-BB84 reference design over a 25 km metro link, phase-lock on.
+# Run:  python -c "import qsim; qsim.load_scenario_plugins(); \
+#                  from qsim.core.scenario import run_scenario; \
+#                  print(run_scenario('scenarios/decoy_bb84_25km.yaml'))"
+name: decoy_bb84_metro_25km
+kind: decoy_bb84
+builder_args:
+  length_km: 25.0
+  locked: true
+run:
+  n_ticks: 300
+  dt_slow: 1.0e-3
+  pulses_per_tick: 200000
+  seed: 1
+finite_key:
+  n_Z_block: 1.0e9
+  eps_sec: 1.0e-9
+  eps_cor: 1.0e-15
+  f_ec: 1.16

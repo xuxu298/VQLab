@@ -1,12 +1,21 @@
-# Configured device (DeviceSpec): the SNSPD upgrade path — same protocol/optics, swapped
-# detector. Flip `detector` to snspd and the sim, BOM, board parameters and rules all update.
+# Configured QKD LINK (DeviceSpec): the SNSPD upgrade path. Same Alice + fiber, swapped
+# detector. Flip `detector` to snspd and the sim, whole-link BOM, board params and rules update.
 name: qkd_metro_snspd
 protocol: decoy_bb84
+# --- Alice (transmitter) ---
+source: gainswitched_dfb
+encoder: amzi_timebin
+qrng: quantis
+modulator_er_db: 30.0
+source_jitter_ps: 20.0
+# --- channel ---
+distance_km: 50.0
+fiber_alpha_db_km: 0.2
+# --- Bob (receiver) ---
 detector: snspd
 n_channels: 2
 gate_rate_hz: 1.25e9
-distance_km: 50.0
 bob_insertion_db: 3.5
-e_misalignment: 0.01
+amzi_visibility: 0.98
 n_z_block: 1.0e8
 notes: "Upgrade: higher PDE + reach at far higher cost (cryostat). Same Alice, same fiber."

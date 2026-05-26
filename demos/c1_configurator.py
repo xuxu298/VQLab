@@ -34,15 +34,15 @@ def main() -> None:
     # sweep the distance knob for both variants
     dists = np.linspace(1, 150, 40)
     curves = {}
-    costs = {}
-    for key, label, col in [("ingaas_sd", "InGaAs self-differencing", "#2471a3"),
+    split = {}
+    for key, label, col in [("ingaas_sd", "InGaAs SD", "#2471a3"),
                             ("snspd", "SNSPD", "#c0392b")]:
         skr = []
         for d in dists:
             rep = configure(ingaas.replace(detector=key, distance_km=float(d)))
             skr.append(rep.skr_bps if rep.feasible else np.nan)
         curves[label] = (np.array(skr), col)
-        costs[label] = (configure(ingaas.replace(detector=key)).bom_total_usd, col)
+        split[label] = configure(ingaas.replace(detector=key)).cost_by_side
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(12, 5), gridspec_kw={"width_ratios": [2, 1]})
     for label, (skr, col) in curves.items():
@@ -54,20 +54,24 @@ def main() -> None:
     axA.legend(loc="upper right")
     axA.grid(alpha=0.25, which="both")
 
-    labels = list(costs.keys())
-    vals = [costs[k][0] / 1e3 for k in labels]
-    cols = [costs[k][1] for k in labels]
-    axB.bar(range(len(labels)), vals, color=cols)
-    axB.set_xticks(range(len(labels)))
-    axB.set_xticklabels([l.replace(" ", "\n") for l in labels], fontsize=8)
-    axB.set_ylabel("BOM cost per side (k USD)")
-    axB.set_title("(B) …and BOM updates too")
-    for i, v in enumerate(vals):
-        axB.text(i, v, f"${v:,.0f}k", ha="center", va="bottom", fontsize=9)
+    # (B) whole-link BOM cost, stacked by side (Alice / shared / Bob)
+    labels = list(split.keys())
+    sides = ["Alice", "shared", "Bob"]
+    side_cols = {"Alice": "#7fb3d5", "shared": "#aab7b8", "Bob": "#e59866"}
+    bottom = np.zeros(len(labels))
+    for sd in sides:
+        vals = np.array([split[l][sd] / 1e3 for l in labels])
+        axB.bar(labels, vals, bottom=bottom, label=sd, color=side_cols[sd])
+        bottom += vals
+    for i, l in enumerate(labels):
+        axB.text(i, bottom[i], f"${bottom[i]:,.0f}k", ha="center", va="bottom", fontsize=9)
+    axB.set_ylabel("whole-link BOM cost (k USD)")
+    axB.set_title("(B) …and the full Alice+Bob BOM updates too")
+    axB.legend(loc="upper left", fontsize=8)
     axB.grid(alpha=0.25, axis="y")
 
-    fig.suptitle("C1: reference-design configurator — DeviceSpec drives behavioural sim "
-                 "AND hardware BOM together", fontsize=12)
+    fig.suptitle("C2: reference-design configurator — one DeviceSpec drives the behavioural "
+                 "sim AND the whole-link BOM", fontsize=12)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     out = os.path.join(FIGDIR, "c1_configurator.png")
     fig.savefig(out, dpi=130)

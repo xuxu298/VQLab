@@ -70,3 +70,39 @@ def test_shipped_config_files_load_and_configure():
         r = configure(DeviceSpec.from_yaml(os.path.join(root, fn)))
         assert r.feasible
         assert r.skr_bps > 0.0
+
+
+# --- C2: full Alice+Bob link --------------------------------------------
+def test_full_link_bom_spans_alice_shared_bob():
+    r = configure(DeviceSpec(detector="ingaas_sd", distance_km=25.0))
+    sides = {it.side for it in r.bom}
+    assert {"Alice", "Bob", "shared"} <= sides
+    # Alice carries the source + modulator (A1, A2 present)
+    refs = {it.ref for it in r.bom}
+    assert {"A1", "A2", "AE5"} <= refs            # laser, intensity mod, QRNG
+    assert abs(sum(r.cost_by_side.values()) - r.bom_total_usd) < 1e-6
+
+
+def test_total_link_cost_in_docs_range():
+    # docs/01 §8: Phase-1 InGaAs ~ $30-80k per link
+    r = configure(DeviceSpec(detector="ingaas_sd", distance_km=25.0))
+    assert 30_000 < r.bom_total_usd < 80_000
+    assert r.cost_by_side["Alice"] > 0 and r.cost_by_side["Bob"] > 0
+
+
+def test_modulator_er_raises_qber():
+    hi = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=35))
+    lo = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=22))
+    assert lo.e_d > hi.e_d                        # finite ER adds state-prep error
+    assert lo.qber > hi.qber
+
+
+def test_low_extinction_ratio_is_infeasible():
+    r = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=15))
+    assert not r.feasible
+    assert any(level == "FAIL" and "ER" in msg for level, msg in r.rules)
+
+
+def test_jitter_budget_rule_fires():
+    r = configure(DeviceSpec(detector="ingaas_sd", gate_rate_hz=1.25e9, source_jitter_ps=300))
+    assert any(level == "WARN" and "jitter" in msg for level, msg in r.rules)

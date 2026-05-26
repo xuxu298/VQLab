@@ -88,6 +88,33 @@ QKD-shaped:
 
 Still open in M2: a richer calibration/uncertainty-propagation framework and a web GUI.
 
+## Status — M3 (the kernel-generality proof: a sensing device)
+
+M3 answers the question that matters most for a *platform*: is the kernel actually
+domain-general, or secretly QKD-shaped? It hosts a physically unrelated device — an
+optically-pumped **atomic magnetometer** — and the kernel takes **zero edits**:
+
+- **New quantum-state backend** (`qsim/sensing/backend.py`) — a spin Bloch/Lindblad evolver,
+  not photon-number statistics. The kernel never calls a backend directly (only domain blocks
+  do), so a new physics domain = new backend class + new blocks, no kernel change. numpy-only;
+  QuTiP is deferred to M4 (multi-qubit) where it earns its weight.
+- **The ENVIRONMENTAL signal type** — defined in M0 but *never used by QKD* — finally flows:
+  the B-field under test is emitted by `AmbientField`. Plus a new plugin-local `SpinBatch`
+  payload runs through the **unchanged** `MultiRateScheduler` (it passes the batch opaquely),
+  proving the scheduler is payload-agnostic.
+- **Same multi-rate structure as QKD**: slow ambient-field drift (reusing `PhaseDriftOU`)
+  modulating fast batches of measurement cycles — structurally identical to "slow phase drift
+  → QBER", here "slow field drift → field estimate + sensitivity".
+- **Two-tier validation** (`qsim/sensing/validation.py`), mirroring M0/M1:
+  - *backend correctness* — the RK4 Bloch integrator matches the closed-form Larmor
+    precession + T₂/T₁ relaxation to **~7×10⁻¹⁰** (analog of M0's brute-force check);
+  - *physics/metric* — Monte-Carlo device sensitivity reproduces the published
+    spin-projection-noise limit δB = 1/(γ√(N·T₂·t)) [Budker & Romalis, *Nature Physics* 3,
+    227 (2007)]: correct 1/√N and 1/√t scaling, with an honestly-reported O(1) readout
+    prefactor (= e at τ=T₂, exactly as derived). The analog of M1's Rusca-figure match.
+- **Harness reuse**: the same `sweep()` maps sensitivity vs atom number (slope −1/2); the
+  device runs as a one-line scenario (`scenarios/magnetometer_rb.yaml`, `kind: magnetometer`).
+
 ## Install & run
 
 ```bash
@@ -97,6 +124,8 @@ python -m demos.m0_validation       # M0 make-or-break: batched engine vs brute-
 python -m demos.m1_rusca_validation # M1 credibility: reproduce Rusca 2018 finite-key SKR figure
 python -m demos.m1_engine_skr       # M1 capstone: engine-driven proven SKR, phase-lock ON vs OFF
 python -m demos.m2_tuning_loop      # M2 tuning loop: sweep/optimize the SKR over mu1, p_Z
+python -m demos.m3_bloch_validation # M3 backend check: Bloch integrator vs closed form
+python -m demos.m3_magnetometer     # M3 generality: atomic magnetometer on the same kernel
 jupyter notebook notebooks/M2_tuning_loop.ipynb   # M2 interactive virtual bench
 pytest -q
 ```
@@ -107,6 +136,9 @@ Outputs (`demos/figures/`):
 - `m0_validation.png` — correctness (batched vs ground truth) + scaling (cost vs pulse rate).
 - `m1_rusca_validation.png` — finite-key SKR vs attenuation (cf. Rusca 2018, 4 block sizes).
 - `m1_engine_skr.png` — engine-driven proven SKR vs distance, phase-lock ON vs OFF.
+- `m3_bloch_validation.png` — Bloch integrator vs closed form (Larmor + T₂/T₁), max err ~1e-9.
+- `m3_magnetometer.png` — magnetometer sensitivity averaging down to the projection-noise
+  limit + sensitivity vs atom number (swept via the shared harness).
 
 ## Honesty notes
 
@@ -125,6 +157,11 @@ Outputs (`demos/figures/`):
   per-event simulation of the *same behavioral physics* — not that physics against reality.
 - The mean-field afterpulse carries a known **~0.1% QBER** systematic vs the per-event model
   (dead-time vetoing). Acceptable here; revisit if a use case needs that floor.
+- M3's δB = 1/(γ√(N·T₂·t)) is the canonical projection-noise *scaling* limit; a concrete
+  readout carries an O(1) prefactor (= e for the τ=T₂ Ramsey readout modelled here). We
+  validate the scaling + the exact per-scheme analytic and **report** the prefactor rather
+  than pretend to hit the bare limit. The magnetometer impairments (T₁/T₂, atom number) are
+  textbook-class defaults — see `qsim/profiles/rb_magnetometer.yaml` provenance.
 
 ## Layout
 
@@ -135,12 +172,15 @@ qsim/qkd/       QKD plugin: blocks (M0 + decoy-BB84), reference builders, metric
                 bruteforce (M0 ground truth), validation, finite_key (Rusca 2018),
                 channel (decoy model), keyrate (SKR optimise/scale), scenarios
 qsim/qrng/      QRNG plugin: beam-splitter QRNG built from kernel primitives (modularity)
+qsim/sensing/   sensing plugin: atomic magnetometer — Bloch backend, blocks, SpinBatch,
+                metrics, two-tier validation, scenario (kernel-generality proof, M3)
 qsim/profiles/  calibration profiles (YAML, with provenance)
-scenarios/      declarative experiment files (decoy_bb84_25km.yaml, qrng_balanced.yaml)
-demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr, m2_tuning_loop
+scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, magnetometer_rb)
+demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr,
+                m2_tuning_loop, m3_bloch_validation, m3_magnetometer
 notebooks/      M0_qber_demo, M2_tuning_loop (interactive virtual bench)
 tests/          test_m0, test_validation, test_finite_key, test_decoy_engine, test_sweep,
-                test_qrng, test_scenario
+                test_qrng, test_scenario, test_sensing
 docs/           architecture (01) + kernel spec (02)
 ```
 
@@ -148,8 +188,9 @@ docs/           architecture (01) + kernel spec (02)
 
 M0 kernel+QKD slice ✓ → M1 decoy-BB84 + finite-key (Rusca 2018), validated vs published
 figure ✓ → M2 sweep/optimize + scenario files + QRNG plugin + Jupyter UX ✓ (calibration-
-uncertainty framework + web GUI still open) → M3 sensing plugin (Bloch/QuTiP) → M4
-QC-hardware plugin (Lindblad/QuTiP).
+uncertainty framework + web GUI still open) → M3 sensing plugin: atomic magnetometer on the
+same kernel, backend + sensitivity both validated ✓ → M4 QC-hardware plugin (full density-
+matrix/Lindblad, multi-qubit — where QuTiP becomes the backend).
 
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
 detector data (vs the current published-simulation match), and fold dead-time into the

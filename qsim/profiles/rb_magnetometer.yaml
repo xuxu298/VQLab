@@ -1,0 +1,58 @@
+name: rb_vapor_magnetometer
+description: >
+  Calibration profile for the M3 sensing reference device — an optically-pumped Rb-87 vapor-
+  cell magnetometer operating near a compensated low-field point. Values are representative/
+  textbook-class for a cm-scale cell and MUST be tightened against a specific cell + optics
+  before any quantitative claim (spec §7). Each param carries its provenance.
+
+params:
+  gamma:
+    value: 4.3982e10
+    unit: rad/(s*T)
+    source: "Rb-87 ground-state Zeeman splitting ~0.70 MHz/G = 7.0 Hz/nT -> 2*pi*7.0e9"
+    note: "gyromagnetic ratio (gamma/2pi = 7.0 GHz/T)"
+  N_atoms:
+    value: 1.0e12
+    unit: atoms
+    source: "design: cm^3 vapor cell, Rb density ~1e12 cm^-3 (warmed cell)"
+    note: "atom number setting the 1/sqrt(N) projection-noise floor"
+  T1:
+    value: 3.0e-2
+    unit: s
+    source: "design-class: buffer-gas / anti-relaxation-coated cell longitudinal relaxation"
+    note: "longitudinal spin relaxation time"
+  T2:
+    value: 5.0e-3
+    unit: s
+    source: "design-class: transverse coherence time, spin-exchange-broadened regime"
+    note: "transverse spin relaxation (coherence) time; sets the interrogation window"
+  tau:
+    value: 5.0e-3
+    unit: s
+    source: "design-choice: interrogate ~ one coherence time (tau = T2)"
+    note: "Ramsey interrogation time per measurement cycle"
+  S0_pump:
+    value: 1.0
+    unit: ""
+    source: "design-target: near-unit spin polarisation from optical pumping"
+    note: "prepared transverse polarisation amplitude"
+  B_dc:
+    value: 1.0e-9
+    unit: T
+    source: "design: small test field near a compensated zero (keeps Larmor phase in range)"
+    note: "DC field under test the device should recover"
+  drift_sigma:
+    value: 0.0
+    unit: T/sqrt(s)
+    source: "model: ambient-field OU drift volatility (0 = quiet shielded environment)"
+    note: "set >0 to exercise the slow-drift / multi-rate tracking"
+  drift_theta:
+    value: 50.0
+    unit: 1/s
+    source: "model: ambient-field drift mean-reversion rate"
+    note: "OU reversion rate for the ambient field"
+  technical_noise:
+    value: 0.0
+    unit: ""
+    source: "design: extra per-quadrature readout noise (0 = projection-noise-limited)"
+    note: "set >0 to model probe shot/technical noise above the quantum floor"

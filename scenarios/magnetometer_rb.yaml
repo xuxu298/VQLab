@@ -1,0 +1,11 @@
+# Rb-87 vapor-cell atomic magnetometer, projection-noise-limited (no technical noise).
+# A shareable, reproducible M3 experiment: "here is exactly what I ran and measured."
+name: magnetometer_rb
+kind: magnetometer
+builder_args:
+  B_dc: 1.0e-9        # 1 nT test field the device should recover
+  drift_sigma: 0.0    # quiet shielded environment (set >0 to exercise slow-drift tracking)
+run:
+  n_ticks: 200
+  cycles_per_tick: 4000
+  seed: 1

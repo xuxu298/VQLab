@@ -34,10 +34,11 @@ class PulseBatch:
 
     n: int
     bit: np.ndarray          # Alice's bit per pulse (0/1)
-    basis_a: np.ndarray      # Alice's basis per pulse (0/1)
-    basis_b: np.ndarray      # Bob's measurement basis per pulse (0/1)
+    basis_a: np.ndarray      # Alice's basis per pulse (0=Z key / 1=X test)
+    basis_b: np.ndarray      # Bob's measurement basis per pulse (0=Z / 1=X)
     intensity: np.ndarray    # source mean photon number mu per pulse (signal vs decoy)
     mu_eff: np.ndarray       # running mean photons reaching the detector (channels multiply)
+    intensity_idx: np.ndarray | None = None  # 1=signal mu1, 2=decoy mu2 (decoy protocol)
 
     # Filled in by the detector block:
     clicked: np.ndarray | None = None   # did a detection event occur?

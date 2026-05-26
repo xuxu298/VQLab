@@ -47,12 +47,35 @@ are accurate; we **prove it** against a sequential per-gate ground truth
 
 `pytest tests/test_validation.py` enforces this agreement on every run.
 
+## Status — M1 (decoy-BB84 reference design + finite-key, validated)
+
+M1 turns the engine into the real device from [`docs/01`](docs/01_architecture_and_bom.md):
+**1-decoy-state BB84** (Rusca et al. 2018, the protocol named in §0), with the proper
+composably-secure **finite-key** bound replacing M0's placeholder asymptotic fraction.
+
+- **Finite-key core** (`qsim/qkd/finite_key.py`): a pure, independent implementation of
+  Rusca 2018 (arXiv:1801.03443) — vacuum/single-photon bounds, X-basis phase-error, and the
+  secret-key length, with Hoeffding finite-statistics.
+- **Validated vs the published figure** (`demos/m1_rusca_validation.py`): our implementation
+  reproduces Rusca's SKR-vs-attenuation figure — **n_Z=10⁷ → ~180 kHz at 26 dB (paper
+  ~200 kHz) and ~62 dB reach (paper ~60–64 dB)**, with the correct plateau, slope, and
+  block-size ordering. This is the credibility step (matching a published result).
+- **End-to-end through the engine** (`demos/m1_engine_skr.py`): the decoy source + sifting
+  detector accumulate per-(basis, intensity) counts under the *full M0 impairments*
+  (afterpulse, phase drift, dead time); the finite-key bound turns them into a proven SKR.
+  A control-loop choice (AMZI phase-lock ON/OFF) flows all the way to the key: lock off →
+  X-basis error inflates → phase-error bound rises → the proven key collapses at distance.
+
+`pytest tests/test_finite_key.py tests/test_decoy_engine.py` covers both.
+
 ## Install & run
 
 ```bash
 pip install -e .            # or: pip install numpy scipy matplotlib pyyaml
-python -m demos.m0_qber_demo      # QKD physics: QBER/SKR vs distance, phase-lock OFF vs ON
-python -m demos.m0_validation     # the make-or-break: batched engine vs brute-force ground truth
+python -m demos.m0_qber_demo        # M0 physics: QBER/SKR vs distance, phase-lock OFF vs ON
+python -m demos.m0_validation       # M0 make-or-break: batched engine vs brute-force ground truth
+python -m demos.m1_rusca_validation # M1 credibility: reproduce Rusca 2018 finite-key SKR figure
+python -m demos.m1_engine_skr       # M1 capstone: engine-driven proven SKR, phase-lock ON vs OFF
 pytest -q
 ```
 
@@ -60,34 +83,46 @@ Outputs (`demos/figures/`):
 - `qber_skr_vs_distance.png` — classic QBER & secret-key-rate vs fiber length.
 - `qber_timeseries.png` — QBER over time, phase-lock OFF vs ON (the multi-rate demo).
 - `m0_validation.png` — correctness (batched vs ground truth) + scaling (cost vs pulse rate).
+- `m1_rusca_validation.png` — finite-key SKR vs attenuation (cf. Rusca 2018, 4 block sizes).
+- `m1_engine_skr.png` — engine-driven proven SKR vs distance, phase-lock ON vs OFF.
 
 ## Honesty notes
 
-- The M0 secret-key rate uses a **simplified asymptotic** BB84 bound, not the full
-  decoy-state finite-key bound — that (and validation against a published experiment) is
-  the **M1** milestone. Do not quote M0 SKR as production figures.
+- M0's `metrics.secret_fraction` is a **simplified asymptotic** placeholder; M1's
+  `finite_key.secret_key_length` (Rusca 2018) is the real composably-secure bound — use the
+  latter for any SKR claim.
+- The M1 finite-key validation reproduces Rusca's **simulated** figure (a channel model +
+  the bound), confirming our bound implementation. It is **not yet** a match to a hardware
+  experiment with measured detector data — that is the higher bar for a production claim.
+- Two documented finite-key implementation choices (the `s_{Z,0}^u` intensity pick → tighter
+  min; natural-log Hoeffding term) are resolved by that figure match to within ~2 dB reach;
+  the residual is the dark-count/dead-time convention.
 - Impairment values are datasheet/paper-class defaults; tighten against real measurements
   before any quantitative claim (see `qsim/profiles/ingaas_spad.yaml` for provenance).
-- The brute-force validation checks the **aggregation approximation** against a per-event
-  simulation of the *same behavioral physics* — it does **not** validate that physics
-  against reality. That requires matching a published experiment (the **M1** milestone).
+- The brute-force validation checks the engine's **aggregation approximation** against a
+  per-event simulation of the *same behavioral physics* — not that physics against reality.
 - The mean-field afterpulse carries a known **~0.1% QBER** systematic vs the per-event model
-  (dead-time vetoing, see above). Acceptable for M0; revisit if a use case needs that floor.
+  (dead-time vetoing). Acceptable here; revisit if a use case needs that floor.
 
 ## Layout
 
 ```
 qsim/core/      kernel: signals, block, graph, scheduler, backends, impairments, calibration, probes
-qsim/qkd/       QKD plugin: blocks, metrics, reference slice builder,
-                bruteforce (per-pulse ground truth), validation (engine-vs-truth harness)
+qsim/qkd/       QKD plugin: blocks (M0 + decoy-BB84), reference builders, metrics,
+                bruteforce (M0 ground truth), validation (engine-vs-truth harness),
+                finite_key (Rusca 2018), channel (decoy model), keyrate (SKR optimise/scale)
 qsim/profiles/  calibration profiles (YAML, with provenance)
-demos/          m0_qber_demo (physics) + m0_validation (make-or-break: correctness & scaling)
-tests/          sanity tests (test_m0) + engine validation (test_validation)
+demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr
+tests/          test_m0, test_validation (M0); test_finite_key, test_decoy_engine (M1)
 docs/           architecture (01) + kernel spec (02)
 ```
 
 ## Roadmap
 
-M0 kernel+QKD slice (this) → M1 full decoy-BB84 + experiment validation → M2 calibration
-framework + QRNG plugin + tuning UX → M3 sensing plugin (Bloch/QuTiP) → M4 QC-hardware
-plugin (Lindblad/QuTiP).
+M0 kernel+QKD slice ✓ → M1 decoy-BB84 + finite-key (Rusca 2018), validated vs published
+figure ✓ → M2 calibration framework + scenario files + sweep/optimize + QRNG plugin + Jupyter
+UX → M3 sensing plugin (Bloch/QuTiP) → M4 QC-hardware plugin (Lindblad/QuTiP).
+
+Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
+detector data (vs the current published-simulation match), and fold dead-time into the
+finite-key rate rather than as a post-hoc cap.

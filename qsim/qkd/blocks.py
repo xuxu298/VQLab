@@ -41,6 +41,37 @@ class FaintPulseSource(Block):
         )
 
 
+class DecoyBB84Source(Block):
+    """Alice for 1-decoy BB84 (Rusca 2018): each pulse gets an intensity (signal mu1 with
+    prob p_mu1, else decoy mu2) and a basis (Z=key with prob p_Z, else X=test). Bob's basis
+    is drawn independently; matched-basis pulses survive sifting downstream."""
+
+    def __init__(self, name: str, mu1: float, mu2: float, p_mu1: float, p_Z: float,
+                 rep_rate: float):
+        super().__init__(name, Timescale.STATIC)
+        self.mu1, self.mu2 = float(mu1), float(mu2)
+        self.p_mu1, self.p_Z = float(p_mu1), float(p_Z)
+        self.rep_rate = float(rep_rate)
+        self.ports_out = {"out": SignalType.OPTICAL}
+
+    def process(self, batch: PulseBatch | None, ctx: SimContext) -> PulseBatch:
+        n = int(ctx.shared["pulses"])
+        rng = ctx.rng
+        ctx.shared["rep_rate"] = self.rep_rate
+        is_signal = rng.random(n) < self.p_mu1
+        idx = np.where(is_signal, 1, 2)
+        intensity = np.where(is_signal, self.mu1, self.mu2)
+        return PulseBatch(
+            n=n,
+            bit=rng.integers(0, 2, n),
+            basis_a=(rng.random(n) >= self.p_Z).astype(int),   # 0=Z, 1=X
+            basis_b=(rng.random(n) >= self.p_Z).astype(int),
+            intensity=intensity,
+            mu_eff=intensity.copy(),
+            intensity_idx=idx,
+        )
+
+
 class FiberChannel(Block):
     """SMF G.652 attenuation: transmittance = 10^(-alpha*L/10)."""
 
@@ -196,3 +227,73 @@ class GatedInGaAsDetector(Block):
 
         batch.clicked, batch.error, batch.sifted = clicked, err, sifted
         return batch
+
+
+class DecoyBB84Detector(GatedInGaAsDetector):
+    """Detector + sifting for 1-decoy BB84. Same photon/impairment physics as the M0
+    detector, but it accumulates the per-(basis, intensity) sifted counts the finite-key
+    bound needs (n_{b,k}, m_{b,k}), and uses a two-basis error model:
+      * Z (time-bin) error = e_Z (intrinsic misalignment) — robust to AMZI phase drift;
+      * X (phase) error    = e_opt from the AMZI (phase-dependent, set per slow tick).
+    Noise clicks (dark/afterpulse) are uncorrelated -> 50% error in either basis.
+    """
+
+    def __init__(self, *args, e_Z: float = 0.005, **kwargs):
+        self.e_Z = float(e_Z)
+        super().__init__(*args, **kwargs)
+
+    def reset(self) -> None:
+        super().reset()
+        # [basis 0=Z,1=X][intensity 0=mu1,1=mu2]
+        self.N = np.zeros((2, 2))      # sifted pulses sent
+        self.clk = np.zeros((2, 2))    # sifted detections
+        self.err = np.zeros((2, 2))    # sifted errors
+
+    def process(self, batch: PulseBatch, ctx: SimContext) -> PulseBatch:
+        rng = ctx.rng
+        n = batch.n
+        rep_rate = ctx.shared.get("rep_rate", 1.0)
+
+        duty = self.deadtime.duty_factor(rep_rate * self._recent_click_rate)
+        p_sig = self.backend.signal_click_prob(batch.mu_eff, self.eta_det) * duty
+        p_noise = self.dark.p_dc + self.after.p_afterpulse()
+        p_click = 1.0 - (1.0 - p_sig) * (1.0 - p_noise)
+
+        clicked = rng.random(n) < p_click
+        p_is_noise = p_noise / (p_sig + p_noise + 1e-15)
+        is_noise = clicked & (rng.random(n) < p_is_noise)
+        is_signal = clicked & ~is_noise
+
+        e_X = ctx.shared.get("e_opt", 0.01)                 # AMZI phase error (X basis)
+        e_sig = np.where(batch.basis_b == 0, self.e_Z, e_X)  # Z uses e_Z, X uses e_opt
+        err = (is_signal & (rng.random(n) < e_sig)) | (is_noise & (rng.random(n) < 0.5))
+        sifted = batch.basis_a == batch.basis_b
+
+        # history update (afterpulse memory + dead-time rate)
+        click_rate = float(clicked.mean())
+        self.after.update(click_rate)
+        self._recent_click_rate = 0.8 * self._recent_click_rate + 0.2 * click_rate
+
+        # accumulate per (basis, intensity) over sifted pulses
+        idx = batch.intensity_idx
+        for b in (0, 1):
+            for k in (1, 2):
+                cell = sifted & (batch.basis_b == b) & (idx == k)
+                j = k - 1
+                self.N[b, j] += int(np.count_nonzero(cell))
+                self.clk[b, j] += int(np.count_nonzero(cell & clicked))
+                self.err[b, j] += int(np.count_nonzero(cell & err))
+
+        batch.clicked, batch.error, batch.sifted = clicked, err, sifted
+        return batch
+
+    def rates(self) -> dict:
+        """Per-(basis, intensity) measured gain Q and QBER E (with the engine's full
+        impairments folded in). Returns NaN-safe zeros where no counts yet."""
+        Q = np.divide(self.clk, self.N, out=np.zeros_like(self.clk), where=self.N > 0)
+        E = np.divide(self.err, self.clk, out=np.zeros_like(self.err), where=self.clk > 0)
+        return {
+            "Q_Z1": Q[0, 0], "Q_Z2": Q[0, 1], "Q_X1": Q[1, 0], "Q_X2": Q[1, 1],
+            "E_Z1": E[0, 0], "E_Z2": E[0, 1], "E_X1": E[1, 0], "E_X2": E[1, 1],
+            "clicks": int(self.clk.sum()),
+        }

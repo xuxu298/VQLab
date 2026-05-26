@@ -19,7 +19,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from .channel import ChannelParams, expected_decoy_counts, gain_qber
-from .finite_key import secret_key_length
+from .finite_key import DecoyCounts, KeyResult, secret_key_length
 
 
 @dataclass
@@ -108,3 +108,42 @@ def optimize_skr(
                                   rep_rate=rep_rate, params=params, eps_sec=eps_sec,
                                   eps_cor=eps_cor, f_ec=f_ec)
     return SKRPoint(skr=max(0.0, skr), mu1=mu1, mu2=mu2, p_mu1=p_mu1, p_Z=p_Z, n_total=n_total)
+
+
+def skr_from_rates(
+    rates: dict,
+    *,
+    mu1: float,
+    mu2: float,
+    p_mu1: float,
+    p_Z: float,
+    n_Z_block: float,
+    rep_rate: float = 1e9,
+    eps_sec: float = 1e-9,
+    eps_cor: float = 1e-15,
+    f_ec: float = 1.16,
+) -> tuple[float, KeyResult]:
+    """Finite-key SKR from ENGINE-MEASURED per-(basis,intensity) rates.
+
+    `rates` is the dict from DecoyBB84Detector.rates() (Q_Z1.. E_X2). Because the batched
+    engine subsamples pulses, we use it to estimate the *rates* (gains/QBERs, with all real
+    impairments folded in) and then evaluate the finite-key bound at the user's absolute
+    privacy-amplification block size `n_Z_block`. Returns (SKR Hz, KeyResult)."""
+    qZ = p_mu1 * rates["Q_Z1"] + (1.0 - p_mu1) * rates["Q_Z2"]
+    if qZ <= 0:
+        return 0.0, KeyResult(0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, False)
+    n_total = n_Z_block / (p_Z * qZ)
+
+    NZ1 = n_total * p_Z * p_mu1
+    NZ2 = n_total * p_Z * (1.0 - p_mu1)
+    NX1 = n_total * (1.0 - p_Z) * p_mu1
+    NX2 = n_total * (1.0 - p_Z) * (1.0 - p_mu1)
+    c = DecoyCounts(
+        nZ1=NZ1 * rates["Q_Z1"], nZ2=NZ2 * rates["Q_Z2"],
+        mZ1=NZ1 * rates["Q_Z1"] * rates["E_Z1"], mZ2=NZ2 * rates["Q_Z2"] * rates["E_Z2"],
+        nX1=NX1 * rates["Q_X1"], nX2=NX2 * rates["Q_X2"],
+        mX1=NX1 * rates["Q_X1"] * rates["E_X1"], mX2=NX2 * rates["Q_X2"] * rates["E_X2"],
+    )
+    r = secret_key_length(c, mu1=mu1, mu2=mu2, p_mu1=p_mu1, p_mu2=1.0 - p_mu1,
+                          eps_sec=eps_sec, eps_cor=eps_cor, f_ec=f_ec)
+    return r.length * rep_rate / n_total, r

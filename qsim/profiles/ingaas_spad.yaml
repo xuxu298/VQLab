@@ -15,7 +15,32 @@ params:
     value: 0.5
     unit: photons/pulse
     source: "design-target: docs/01 §0 (mu ~ 0.4-0.5)"
-    note: "signal-state mean photon number"
+    note: "signal-state mean photon number (M0 single-intensity slice)"
+  mu1:
+    value: 0.5
+    unit: photons/pulse
+    source: "design-target: docs/01 §0 (mu ~ 0.4-0.5)"
+    note: "1-decoy signal intensity (Rusca 2018)"
+  mu2:
+    value: 0.1
+    unit: photons/pulse
+    source: "design-choice: typical 1-decoy ratio mu2/mu1 ~ 0.1-0.3"
+    note: "1-decoy decoy intensity (must be < mu1)"
+  p_mu1:
+    value: 0.7
+    unit: ""
+    source: "design-choice: optimize per loss (Rusca §); 0.7 nominal"
+    note: "probability of sending the signal intensity"
+  p_Z:
+    value: 0.9
+    unit: ""
+    source: "design-choice: biased-basis BB84; Z(key) favored"
+    note: "probability of choosing the Z (key) basis"
+  e_Z:
+    value: 0.005
+    unit: ""
+    source: "design-target: time-bin alignment error (small, drift-robust)"
+    note: "Z-basis (time-bin) intrinsic error; X-basis error comes from the AMZI"
   fiber_alpha:
     value: 0.2
     unit: dB/km

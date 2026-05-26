@@ -1,0 +1,12 @@
+# Randomized benchmarking of a transmon-class qubit. The runner reports the RB-fitted
+# error-per-Clifford alongside the independently-computed analytic channel infidelity, so
+# `ratio` ~ 1 is the M4 credibility check in a single shareable file.
+name: rb_transmon
+kind: rb
+builder_args:
+  T1: 5.0e-5      # 50 us
+  T2: 4.0e-5      # 40 us
+  t_gate: 3.0e-8  # 30 ns per gate
+run:
+  n_seq: 80
+  seed: 2

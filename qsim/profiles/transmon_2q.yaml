@@ -1,0 +1,33 @@
+name: transmon_2q
+description: >
+  Calibration profile for the M4 QC-hardware reference device — a 2-qubit fixed-frequency
+  transmon-class processor. Values are representative/textbook-class for superconducting
+  qubits circa mid-2020s and MUST be tightened against a specific device before any
+  quantitative claim (spec §7). Each param carries its provenance.
+
+params:
+  T1:
+    value: 5.0e-5
+    unit: s
+    source: "design-class: fixed-frequency transmon relaxation ~50 us"
+    note: "amplitude-damping (energy relaxation) time"
+  T2:
+    value: 7.0e-5
+    unit: s
+    source: "design-class: transmon coherence ~70 us (echo); must satisfy T2 <= 2 T1"
+    note: "transverse coherence time; pure dephasing rate = 1/T2 - 1/(2 T1)"
+  t_gate:
+    value: 4.0e-8
+    unit: s
+    source: "design-class: ~40 ns per gate (single-qubit ~20-30 ns, CNOT longer)"
+    note: "effective gate duration over which relaxation acts per gate"
+  miscal_sigma:
+    value: 0.0
+    unit: rad/sqrt(s)
+    source: "model: OU volatility of a coherent RZ over-rotation (0 = perfectly calibrated)"
+    note: "set >0 to exercise slow calibration drift / multi-rate tracking"
+  miscal_theta:
+    value: 20.0
+    unit: 1/s
+    source: "model: calibration-drift mean-reversion rate"
+    note: "OU reversion rate for the coherent miscalibration"

@@ -115,6 +115,36 @@ optically-pumped **atomic magnetometer** — and the kernel takes **zero edits**
 - **Harness reuse**: the same `sweep()` maps sensitivity vs atom number (slope −1/2); the
   device runs as a one-line scenario (`scenarios/magnetometer_rb.yaml`, `kind: magnetometer`).
 
+## Status — M4 (the third domain: multi-qubit QC hardware)
+
+M4 closes the roadmap's domain list by hosting the most demanding domain — a noisy few-qubit
+processor — on the unchanged kernel. M3 already ran a single spin-½, so M4 earns its place
+only with capability M3 *could not* show: **multi-qubit Hilbert spaces and entanglement**.
+
+- **Third quantum-state backend** (`qsim/qchw/backend.py`) — a multi-qubit density-matrix /
+  Lindblad evolver (T1 amplitude damping + dephasing), a gate library incl. the entangling
+  **CNOT**, and exact average-gate-infidelity via the Pauli transfer matrix. numpy-only and
+  transparent for 1–2 qubits; the interface stays QuTiP-swappable for large-n scaling.
+- **Multi-qubit + entanglement**: a Bell pair (H, CNOT) reaches **unit fidelity** ideally and
+  degrades realistically under T1/T2 (≈99.87 % over 40 ns gates) and miscalibration — the
+  tensor-product/entangling physics that distinguishes M4 from M3's single qubit.
+- **Two-tier validation** (`qsim/qchw/validation.py`):
+  - *backend correctness* — the Lindblad propagator matches the closed-form T1 decay, T2
+    dephasing and undamped Rabi to **machine precision** (expm is exact);
+  - *physics/metric* — **Randomized Benchmarking** [Magesan et al., PRL 106, 180504 (2011)],
+    the industry-standard gate-fidelity protocol: the RB-fitted error-per-Clifford matches the
+    **independently-computed** average gate infidelity of the injected T1/T2 channel to **~1 %**
+    across configs (a non-circular check). The single-qubit 24-element Clifford group is built
+    by closure and fingerprinted by its Pauli action (float-robust).
+- **Device on the kernel**: a Bell generator (`QubitRegister → BellCircuit → BellReadout`)
+  runs an n-qubit ρ through the **unchanged** `MultiRateScheduler`, with a slow RZ phase
+  miscalibration (reusing `PhaseDriftOU`) drifting the fidelity tick-to-tick — the QC analog
+  of QKD's drifting-AMZI QBER. Reuses `sweep()` (fidelity vs gate time) and the scenario
+  system (`kind: rb`, `kind: bell_device`).
+
+With M4, one kernel hosts four devices across three domains (QKD, QRNG, sensing, QC hardware)
+with **zero kernel edits** between them — the platform thesis, demonstrated.
+
 ## Install & run
 
 ```bash
@@ -126,6 +156,8 @@ python -m demos.m1_engine_skr       # M1 capstone: engine-driven proven SKR, pha
 python -m demos.m2_tuning_loop      # M2 tuning loop: sweep/optimize the SKR over mu1, p_Z
 python -m demos.m3_bloch_validation # M3 backend check: Bloch integrator vs closed form
 python -m demos.m3_magnetometer     # M3 generality: atomic magnetometer on the same kernel
+python -m demos.m4_rb               # M4 credibility: RB error-per-Clifford vs analytic
+python -m demos.m4_bell_device      # M4 multi-qubit: Bell generator on the same kernel
 jupyter notebook notebooks/M2_tuning_loop.ipynb   # M2 interactive virtual bench
 pytest -q
 ```
@@ -139,6 +171,9 @@ Outputs (`demos/figures/`):
 - `m3_bloch_validation.png` — Bloch integrator vs closed form (Larmor + T₂/T₁), max err ~1e-9.
 - `m3_magnetometer.png` — magnetometer sensitivity averaging down to the projection-noise
   limit + sensitivity vs atom number (swept via the shared harness).
+- `m4_rb.png` — RB survival decays `A pᵐ+B` at 3 noise levels; fitted EPC vs analytic infidelity.
+- `m4_bell_device.png` — Bell fidelity wandering with slow phase drift + coherence-limited
+  fidelity vs gate time.
 
 ## Honesty notes
 
@@ -162,6 +197,14 @@ Outputs (`demos/figures/`):
   validate the scaling + the exact per-scheme analytic and **report** the prefactor rather
   than pretend to hit the bare limit. The magnetometer impairments (T₁/T₂, atom number) are
   textbook-class defaults — see `qsim/profiles/rb_magnetometer.yaml` provenance.
+- M4 RB needs sequence lengths scaled to the error (m up to ~ln2/r) or the `A pᵐ+B` fit is
+  ill-conditioned and biases EPC high; `validate_rb` auto-scales. The RB noise is a
+  gate-independent T1/T2 channel (the regime where EPC = channel infidelity exactly); SPAM and
+  gate-dependent noise are out of scope. M4 uses numpy dense ρ — exact for 1–2 qubits, but it
+  does **not** scale past ~6–8 qubits; QuTiP/sparse is the documented backend swap for large n.
+- The M4 Bell device's RZ *phase* miscalibration degrades the exact fidelity but is invisible
+  to computational-basis parity P(00)+P(11) — kept deliberately as a reminder that coherent
+  phase errors need rotated-basis readout / tomography, not just population readout.
 
 ## Layout
 
@@ -174,13 +217,16 @@ qsim/qkd/       QKD plugin: blocks (M0 + decoy-BB84), reference builders, metric
 qsim/qrng/      QRNG plugin: beam-splitter QRNG built from kernel primitives (modularity)
 qsim/sensing/   sensing plugin: atomic magnetometer — Bloch backend, blocks, SpinBatch,
                 metrics, two-tier validation, scenario (kernel-generality proof, M3)
+qsim/qchw/      QC-hardware plugin: multi-qubit density-matrix/Lindblad backend, gates+CNOT,
+                Clifford group, randomized benchmarking, Bell device, two-tier validation (M4)
 qsim/profiles/  calibration profiles (YAML, with provenance)
-scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, magnetometer_rb)
+scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, magnetometer_rb,
+                rb_transmon, bell_device_2q)
 demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr,
-                m2_tuning_loop, m3_bloch_validation, m3_magnetometer
+                m2_tuning_loop, m3_bloch_validation, m3_magnetometer, m4_rb, m4_bell_device
 notebooks/      M0_qber_demo, M2_tuning_loop (interactive virtual bench)
 tests/          test_m0, test_validation, test_finite_key, test_decoy_engine, test_sweep,
-                test_qrng, test_scenario, test_sensing
+                test_qrng, test_scenario, test_sensing, test_qchw
 docs/           architecture (01) + kernel spec (02)
 ```
 
@@ -189,8 +235,14 @@ docs/           architecture (01) + kernel spec (02)
 M0 kernel+QKD slice ✓ → M1 decoy-BB84 + finite-key (Rusca 2018), validated vs published
 figure ✓ → M2 sweep/optimize + scenario files + QRNG plugin + Jupyter UX ✓ (calibration-
 uncertainty framework + web GUI still open) → M3 sensing plugin: atomic magnetometer on the
-same kernel, backend + sensitivity both validated ✓ → M4 QC-hardware plugin (full density-
-matrix/Lindblad, multi-qubit — where QuTiP becomes the backend).
+same kernel, backend + sensitivity both validated ✓ → M4 QC-hardware plugin: multi-qubit
+density-matrix/Lindblad, entangling gates, RB-validated gate fidelity ✓.
+
+All three roadmap domains (QKD, sensing, QC hardware) + QRNG now run on one unchanged kernel.
+Next candidates: a calibration/uncertainty-propagation framework, the web GUI / node-editor
+front-end (the education-facing flagship), a QuTiP/sparse backend for larger qubit counts, and
+— for QKD specifically — a hardware-data match and the detailed hardware-design deliverable
+(schematics/BOM/firmware) the reference design is meant to drive.
 
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
 detector data (vs the current published-simulation match), and fold dead-time into the

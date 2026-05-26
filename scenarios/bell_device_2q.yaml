@@ -1,0 +1,14 @@
+# Noisy 2-qubit Bell-state generator on the kernel, with a slow coherent phase-miscalibration
+# drift. Demonstrates a multi-qubit density matrix + entangling CNOT flowing through the
+# unchanged multi-rate scheduler. Mean Bell fidelity wanders with the drift.
+name: bell_device_2q
+kind: bell_device
+builder_args:
+  T1: 5.0e-5
+  T2: 7.0e-5
+  t_gate: 4.0e-8
+  miscal_sigma: 120.0   # OU volatility of the RZ phase error (0 = perfectly calibrated)
+run:
+  n_ticks: 200
+  shots_per_tick: 512
+  seed: 0

@@ -1,0 +1,59 @@
+* Bob detector front-end — self-differencing (SD) gate-transient cancellation
+* =============================================================================
+* The core technical challenge of a GHz-gated InGaAs/InP SPAD: applying a fast
+* gate to bias the diode above breakdown injects a large CAPACITIVE displacement
+* current (i = C_j * dV/dt) that completely buries the tiny single-photon
+* avalanche. The self-differencing technique [Yuan et al., APL 91, 041114 (2007);
+* Comandar et al., arXiv:1412.1586] subtracts the detector signal from its own
+* copy delayed by exactly one gate period: the PERIODIC gate transient cancels,
+* while the APERIODIC avalanche (present in only one gate) survives.
+*
+* This netlist models that cancellation behaviourally so it can be simulated and
+* the suppression quantified. It is a SIGNAL-PATH model (not a device-physics SPAD
+* model): the SPAD is represented by its junction capacitance C_j (the source of
+* the transient) plus an injected avalanche current source (the signal).
+*
+* Run:  ngspice -b sd_frontend.cir   (writes sd_frontend.data for the plotter)
+* =============================================================================
+
+.param fgate=1.25e9          ; gate repetition frequency (1.25 GHz, sine-gating)
+.param Tg='1/fgate'          ; gate period = 0.8 ns
+.param Vg=3.0                ; gate sine amplitude at the SPAD (V)
+.param Cj=0.5p               ; SPAD junction capacitance (representative InGaAs/InP)
+.param Rl=50                 ; readout characteristic impedance (ohm)
+.param Qav=50f               ; avalanche charge per detection (~50 fC, charge-detection class)
+.param tav=4.0n              ; time of the (single) photon-triggered avalanche
+.param wav=80p               ; avalanche current pulse width
+.param imbal=0.02            ; SD amplitude imbalance (delay-line loss/mismatch -> finite suppression)
+
+* --- gate drive applied across the SPAD junction ---------------------------
+Vgate gate 0 SIN(0 'Vg' 'fgate')
+
+* --- SPAD: junction capacitance couples the gate edge into the readout node --
+* displacement current i = Cj*dV/dt flows from the gate node into Rl at 'det'
+Cj   gate det 'Cj'
+Rterm det 0 'Rl'
+
+* --- the avalanche: an aperiodic current pulse in ONE gate window -----------
+* peak current ~ Qav/wav; injected into the readout node 'det'
+Iav 0 det PULSE(0 'Qav/wav' 'tav' 15p 15p 'wav' '1000*Tg')
+
+* --- self-differencing network ---------------------------------------------
+* direct arm = v(det); delayed arm = v(det) through a 1-period matched line.
+Ebuf nin 0 det 0 1                       ; ideal unity buffer feeding the delay line
+Tdl  nin 0 ndly 0 Z0='Rl' TD='Tg'        ; lossless delay line, one gate period
+Rm   ndly 0 'Rl'                         ; matched termination (no reflection)
+
+* SD output: direct minus (slightly imbalanced) delayed copy.
+* perfect balance -> perfect periodic cancellation; the 'imbal' term models the
+* real-world delay-line loss/dispersion that limits suppression in practice.
+Bsd vsd 0 V = V(det) - (1-imbal)*V(ndly)
+
+.tran 2p 8n 0 2p
+.control
+  run
+  set wr_vecnames
+  set wr_singlescale
+  wrdata sd_frontend.data v(det) v(vsd) v(gate)
+.endc
+.end

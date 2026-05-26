@@ -384,10 +384,10 @@ without redesigning everything.
 
 ## 9. Open questions / risks / next steps
 
-**Open questions for next session:**
-1. Number of detector channels — 2 (BB84 active basis, 1 det/basis with passive) vs 4 (full). Affects Bob optics + TDC channels + cost.
-2. Sync strategy — separate 1310 nm channel vs data-channel clock recovery vs White Rabbit.
-3. Phase 1 demo distance — exact metro span the telco will provide (drives μ + detector tuning).
+**Open questions — RESOLVED 2026-05-26 in [`03_bob_gating_board.md`](03_bob_gating_board.md) §1:**
+1. ✅ Detector channels — **2** (one-way phase/time-bin BB84: 1 AMZI + 2 port detectors; Z from time-slot, X from port). 4 = marginal Phase-1 benefit.
+2. ✅ Sync strategy — **dedicated 1310 nm optical sync, CWDM-combined onto the same dark fiber** (avoids a second lease; clock-recovery too photon-starved, White Rabbit unneeded at metro).
+3. ✅ Phase-1 span — **25 km assumed** (10–50 km envelope); telco confirms exact span, qsim sweep re-points trivially.
 
 **Key risks:**
 - LiNbO₃ modulator bias drift (mitigate: auto-bias controller AE4).
@@ -396,10 +396,10 @@ without redesigning everything.
 - Long-lead/expensive parts (modulators, SPAD/SNSPD) — verify availability early.
 
 **Immediate next steps:**
-1. Web-verify long-lead parts (A2 modulator, A3 AMZI, BD1 SPAD) — current vendors, datasheets, lead time.
-2. Lock the 3 open questions above.
-3. Draw the detailed signal/optical block diagram (KiCad hierarchical sheet + photonic schematic).
-4. Start first subsystem schematic — candidate: **Bob detector gating/quenching board** (hardest, most differentiating) or **Alice timing/laser-driver board**.
+1. ✅ First subsystem designed — **Bob gating/quenching board** ([`03_bob_gating_board.md`](03_bob_gating_board.md)): self-differencing front-end, **ngspice-simulated** gate-transient cancellation (34 dB, avalanche discriminable), **qsim-validated** (QBER 1 %, ~8 Mbps @25 km).
+2. Next: capture H1 as a **KiCad schematic + PCB** (50 Ω controlled-impedance, tuned delay line); write the **FPGA gate-veto/ghost-reject/timestamp firmware** (Verilog + Verilator).
+3. Then the **Alice timing/laser-driver board** (gain-switch <500 ps, ngspice).
+4. Web-verify the remaining long-lead optics (A2 modulator, A3/B2 AMZI) for the BOM.
 
 > **Giải thích — phần này để làm gì:** tổng hợp **3 câu hỏi chưa chốt** (số kênh đầu dò, cách đồng bộ,
 > khoảng cách demo — đều ảnh hưởng tới thiết kế & chi phí), **4 rủi ro lớn nhất** kèm cách giảm thiểu,

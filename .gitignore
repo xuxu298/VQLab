@@ -7,3 +7,6 @@ demos/figures/
 build/
 dist/
 .venv/
+
+# ngspice generated dumps
+hardware/**/*.data

@@ -84,11 +84,19 @@ class BobAMZI(Block):
         self.locked = locked
         self.lock_gain = float(lock_gain)
         self._est = 0.0  # phase-lock estimate (leaky integrator)
+        # Optional externally-supplied per-tick phase trace (e.g. a measured drift log, or
+        # a shared trajectory for engine validation). When set, it overrides the OU model.
+        self.external_phase: np.ndarray | None = None
+        self._tick = 0
         self.ports_in = {"in": SignalType.OPTICAL}
         self.ports_out = {"out": SignalType.OPTICAL}
 
     def step(self, ctx: SimContext) -> None:
-        phi = self.drift.step(ctx.dt, ctx.rng)
+        if self.external_phase is not None:
+            phi = float(self.external_phase[min(self._tick, len(self.external_phase) - 1)])
+            self._tick += 1
+        else:
+            phi = self.drift.step(ctx.dt, ctx.rng)
         if self.locked:
             self._est += self.lock_gain * (phi - self._est)
             resid = phi - self._est
@@ -105,6 +113,7 @@ class BobAMZI(Block):
     def reset(self) -> None:
         self.drift.reset()
         self._est = 0.0
+        self._tick = 0
 
 
 class GatedInGaAsDetector(Block):

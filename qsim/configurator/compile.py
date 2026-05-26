@@ -46,6 +46,27 @@ class ConfigReport:
     rules: list[tuple[str, str]]
     feasible: bool
 
+    def to_dict(self) -> dict:
+        """JSON-serialisable form (for the GUI / API)."""
+        return {
+            "name": self.spec.name,
+            "source_label": self.source_label,
+            "variant_label": self.variant_label,
+            "loss_db": self.loss_db,
+            "e_d": self.e_d,
+            "qber": self.qber,
+            "skr_bps": self.skr_bps,
+            "mu1": self.mu1,
+            "mu2": self.mu2,
+            "bom": [{"ref": it.ref, "part": it.part, "side": it.side,
+                     "qty": it.qty, "line_cost_usd": it.line_cost_usd} for it in self.bom],
+            "cost_by_side": self.cost_by_side,
+            "bom_total_usd": self.bom_total_usd,
+            "board_params": {k: str(v) for k, v in self.board_params.items()},
+            "rules": [{"level": lv, "msg": m} for lv, m in self.rules],
+            "feasible": self.feasible,
+        }
+
     def format(self) -> str:
         s = self.spec
         L = [

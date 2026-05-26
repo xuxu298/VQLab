@@ -145,6 +145,16 @@ LINK_BOM: list[BomLine] = [
 ]
 
 
+def catalog_options() -> dict:
+    """Variant choices for GUI dropdowns: {field: [{key, label}, ...]}."""
+    return {
+        "detector": [{"key": k, "label": v.label} for k, v in DETECTORS.items()],
+        "source": [{"key": k, "label": v.label} for k, v in SOURCES.items()],
+        "qrng": [{"key": k, "label": v.label} for k, v in QRNGS.items()],
+        "encoder": [{"key": k, "label": k} for k in ENCODER_BOM],
+    }
+
+
 def derive_board_params(spec, det: DetectorVariant) -> dict:
     """Hardware parameters DERIVED from the spec — the 'turn a knob, the board updates' link."""
     p: dict[str, object] = {}

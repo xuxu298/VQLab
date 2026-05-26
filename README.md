@@ -170,6 +170,19 @@ flags the link infeasible. A `DeviceSpec` is shareable YAML — the **headless c
 GUI will later drive**. The detailed circuit (schematic/SPICE/PCB) stays in the expert reference
 design (`docs/03`, `hardware/`) + KiCad; the configurator *selects and parametrises* it.
 
+## Status — G1 (the virtual-bench GUI)
+
+A thin web front-end (`gui/`) over `configure()` — the first GUI layer of the "virtual quantum
+bench". Flask backend + a single static vanilla-JS page (no build step; engine server-side, per
+the browser/no-install/modest-hardware mission). Turn the knobs (detector, source, QRNG,
+distance, gate rate, modulator ER, AMZI visibility, channels) and the page live-updates the
+feasibility badge, QBER / SKR / whole-link cost, the SKR-vs-distance + BOM-cost figure, the
+color-coded design rules, and the Alice/shared/Bob BOM. Verified end-to-end with headless
+Chromium (swapping the detector knob updates SKR 7.9 → 26 Mbps and cost $57k → $350k live). This
+is the form-based first step toward the node-editor flagship; the `DeviceSpec` data model and
+the headless `configure()` core are exactly what that editor will sit on. Run: `python -m
+gui.server` → `http://127.0.0.1:8000` (see `gui/README.md`).
+
 ## Install & run
 
 ```bash
@@ -255,10 +268,11 @@ scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, ma
 configs/        DeviceSpec files for the configurator (qkd_metro_ingaas, qkd_metro_snspd)
 hardware/       QKD hardware-design track: bob_gating_board (ngspice SD front-end, schematic,
                 KiCad netlist, BOM, qsim design-validation) — see docs/03
+gui/            virtual-bench GUI (G1): Flask backend over configure() + vanilla-JS page
 demos/          m0..m4 demos, c1_configurator
 notebooks/      M0_qber_demo, M2_tuning_loop (interactive virtual bench)
 tests/          test_m0, test_validation, test_finite_key, test_decoy_engine, test_sweep,
-                test_qrng, test_scenario, test_sensing, test_qchw, test_configurator
+                test_qrng, test_scenario, test_sensing, test_qchw, test_configurator, test_gui
 docs/           architecture+BOM (01) + kernel spec (02) + Bob gating board design (03)
 ```
 
@@ -276,9 +290,13 @@ gating board (ngspice-simulated cancellation, schematic + KiCad netlist + BOM, q
 design-validation; `docs/03`) — and **C1** — the reference-design configurator tying high-level
 knobs to sim + BOM + board params + design rules (`qsim/configurator/`).
 
-Next candidates: PCB layout (KiCad) + Bob FPGA firmware (Verilog/Verilator) for H1; the Alice
-timing/laser-driver board; the web GUI / node-editor front-end on top of the C1 configurator
-(the education-facing flagship); a QuTiP/sparse backend for larger qubit counts; and a QKD
+Then the user-facing layers: **C1/C2** — the reference-design configurator (one DeviceSpec →
+sim + whole-link BOM + board params + design rules; `qsim/configurator/`) — and **G1** — a thin
+web GUI over it (`gui/`), the first step of the virtual quantum bench.
+
+Next candidates: the node-editor (drag-and-drop) front-end on top of the configurator (the
+education flagship); PCB layout (KiCad) + Bob FPGA firmware (Verilog/Verilator) for H1; the
+Alice timing/laser-driver board; a QuTiP/sparse backend for larger qubit counts; and a QKD
 hardware-data match for a production-grade key-rate claim.
 
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured

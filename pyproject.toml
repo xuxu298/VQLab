@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qsim"
-version = "0.0.1"
-description = "Open-source, device-level quantum-technology simulation platform (M0: QKD slice)"
+version = "0.0.6"
+description = "Open-source, device-level quantum-technology simulation platform + QKD reference design"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -16,9 +16,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# sensing (M3) and qc-hardware (M4) backends will use QuTiP; not needed for M0.
+gui = ["flask>=2.2"]               # the virtual-bench web GUI (gui/)
+# QuTiP is NOT a dependency: the sensing (M3) and qc-hardware (M4) backends use a transparent
+# numpy dense-rho engine (exact for the 1-2 qubit / spin regimes). QuTiP/sparse is the
+# documented swap-in for large-n qc-hardware only.
 quantum = ["qutip>=4.7"]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "playwright>=1.40"]
 
 [tool.setuptools.packages.find]
 include = ["qsim*"]

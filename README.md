@@ -145,6 +145,26 @@ only with capability M3 *could not* show: **multi-qubit Hilbert spaces and entan
 With M4, one kernel hosts four devices across three domains (QKD, QRNG, sensing, QC hardware)
 with **zero kernel edits** between them — the platform thesis, demonstrated.
 
+## Status — C1 (reference-design configurator: the user-facing "design" layer)
+
+The configurator (`qsim/configurator/`) answers *"can a user design their own device, or only
+print a fixed BOM?"* — without reinventing KiCad. A high-level **`DeviceSpec`** of physically
+meaningful knobs (detector type, gate rate, channels, distance, …) drives, **consistently and
+from one source of truth**:
+
+- the **behavioural simulation** (qsim finite-key → QBER / secret-key rate),
+- the reference **hardware build** (BOM assembly + board parameters *derived* from the knobs —
+  e.g. gate rate → self-differencing coax-delay = 1 gate period; detector → cryostat vs TEC),
+- **design-rule checks** that flag illegal/again-st-physics combinations.
+
+Turn one knob and the predicted performance, the parts list, *and* the board parameters all
+update together. `configure(spec)` returns a unified report; the `{InGaAs-SD, 1.25 GHz, 25 km}`
+spec reproduces the H1 hand-design (QBER 1.0 %, ~8 Mbps, the 0.8 ns delay line). Flipping the
+detector to SNSPD re-prices the BOM ($34k → $326k/side) and re-derives the board. A `DeviceSpec`
+is shareable YAML — this is the **headless core a drag-and-drop GUI will later drive**. The
+detailed circuit (schematic/SPICE/PCB) stays in the expert reference design (`docs/03`,
+`hardware/`) + KiCad; the configurator *selects and parametrises* it, it does not redraw it.
+
 ## Install & run
 
 ```bash
@@ -158,6 +178,9 @@ python -m demos.m3_bloch_validation # M3 backend check: Bloch integrator vs clos
 python -m demos.m3_magnetometer     # M3 generality: atomic magnetometer on the same kernel
 python -m demos.m4_rb               # M4 credibility: RB error-per-Clifford vs analytic
 python -m demos.m4_bell_device      # M4 multi-qubit: Bell generator on the same kernel
+python -m demos.c1_configurator     # C1 configurator: one DeviceSpec -> sim + BOM together
+python -m hardware.bob_gating_board.simulate          # H1 hardware: ngspice SD cancellation
+python -m hardware.bob_gating_board.validate_with_qsim # H1: detector params -> QBER/SKR
 jupyter notebook notebooks/M2_tuning_loop.ipynb   # M2 interactive virtual bench
 pytest -q
 ```
@@ -219,15 +242,19 @@ qsim/sensing/   sensing plugin: atomic magnetometer — Bloch backend, blocks, S
                 metrics, two-tier validation, scenario (kernel-generality proof, M3)
 qsim/qchw/      QC-hardware plugin: multi-qubit density-matrix/Lindblad backend, gates+CNOT,
                 Clifford group, randomized benchmarking, Bell device, two-tier validation (M4)
+qsim/configurator/  reference-design configurator (C1): DeviceSpec + variant catalog + compile
+                (spec -> qsim sim + BOM + board params + design rules); the headless GUI core
 qsim/profiles/  calibration profiles (YAML, with provenance)
 scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, magnetometer_rb,
                 rb_transmon, bell_device_2q)
-demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr,
-                m2_tuning_loop, m3_bloch_validation, m3_magnetometer, m4_rb, m4_bell_device
+configs/        DeviceSpec files for the configurator (qkd_metro_ingaas, qkd_metro_snspd)
+hardware/       QKD hardware-design track: bob_gating_board (ngspice SD front-end, schematic,
+                KiCad netlist, BOM, qsim design-validation) — see docs/03
+demos/          m0..m4 demos, c1_configurator
 notebooks/      M0_qber_demo, M2_tuning_loop (interactive virtual bench)
 tests/          test_m0, test_validation, test_finite_key, test_decoy_engine, test_sweep,
-                test_qrng, test_scenario, test_sensing, test_qchw
-docs/           architecture (01) + kernel spec (02)
+                test_qrng, test_scenario, test_sensing, test_qchw, test_configurator
+docs/           architecture+BOM (01) + kernel spec (02) + Bob gating board design (03)
 ```
 
 ## Roadmap
@@ -238,11 +265,16 @@ uncertainty framework + web GUI still open) → M3 sensing plugin: atomic magnet
 same kernel, backend + sensitivity both validated ✓ → M4 QC-hardware plugin: multi-qubit
 density-matrix/Lindblad, entangling gates, RB-validated gate fidelity ✓.
 
-All three roadmap domains (QKD, sensing, QC hardware) + QRNG now run on one unchanged kernel.
-Next candidates: a calibration/uncertainty-propagation framework, the web GUI / node-editor
-front-end (the education-facing flagship), a QuTiP/sparse backend for larger qubit counts, and
-— for QKD specifically — a hardware-data match and the detailed hardware-design deliverable
-(schematics/BOM/firmware) the reference design is meant to drive.
+All three roadmap domains (QKD, sensing, QC hardware) + QRNG run on one unchanged kernel. The
+project then forked onto the **QKD hardware-design track**: **H1** — the Bob self-differencing
+gating board (ngspice-simulated cancellation, schematic + KiCad netlist + BOM, qsim
+design-validation; `docs/03`) — and **C1** — the reference-design configurator tying high-level
+knobs to sim + BOM + board params + design rules (`qsim/configurator/`).
+
+Next candidates: PCB layout (KiCad) + Bob FPGA firmware (Verilog/Verilator) for H1; the Alice
+timing/laser-driver board; the web GUI / node-editor front-end on top of the C1 configurator
+(the education-facing flagship); a QuTiP/sparse backend for larger qubit counts; and a QKD
+hardware-data match for a production-grade key-rate claim.
 
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
 detector data (vs the current published-simulation match), and fold dead-time into the

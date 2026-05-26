@@ -1,0 +1,13 @@
+# Configured device (DeviceSpec): Phase-1 metro QKD with the InGaAs self-differencing detector.
+# `configure()` turns these high-level knobs into: behavioural sim (QBER/SKR), a BOM, derived
+# board parameters, and design-rule checks — all consistently. One shareable file = one device.
+name: qkd_metro_ingaas
+protocol: decoy_bb84
+detector: ingaas_sd
+n_channels: 2
+gate_rate_hz: 1.25e9
+distance_km: 25.0
+bob_insertion_db: 3.5
+e_misalignment: 0.01
+n_z_block: 1.0e8
+notes: "Phase-1 reference: matches docs/03 (H1) — QBER ~1%, ~8 Mbps @25 km."

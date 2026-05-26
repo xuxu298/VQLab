@@ -145,13 +145,15 @@ only with capability M3 *could not* show: **multi-qubit Hilbert spaces and entan
 With M4, one kernel hosts four devices across three domains (QKD, QRNG, sensing, QC hardware)
 with **zero kernel edits** between them — the platform thesis, demonstrated.
 
-## Status — C1/C2 (reference-design configurator: the user-facing "design" layer)
+## Status — C1/C2/C3 (multi-domain reference-design configurator: the user-facing "design" layer)
 
 The configurator (`qsim/configurator/`) answers *"can a user design their own device, or only
-print a fixed BOM?"* — without reinventing KiCad. A high-level **`DeviceSpec`** of physically
-meaningful knobs spanning the **whole Alice→fiber→Bob link** (source, modulator extinction
-ratio, QRNG, encoder, distance, detector, gate rate, channels, …) drives, **consistently and
-from one source of truth**:
+print a fixed BOM?"* — without reinventing KiCad. **As of C3 it is multi-domain**: a domain
+registry (mirroring the kernel's plugin pattern) hosts **QKD link**, **atomic-magnetometer
+sensing**, and **few-qubit QC hardware**, all behind one `configure(domain, knobs)` core and one
+uniform `ConfigReport`. For the QKD link a high-level knob set spans the **whole Alice→fiber→Bob
+link** (source, modulator extinction ratio, QRNG, encoder, distance, detector, gate rate,
+channels, …) and drives, **consistently and from one source of truth**:
 
 - the **behavioural simulation** (qsim finite-key → QBER / secret-key rate), with the intrinsic
   error *derived* from the Alice modulator ER + the Bob AMZI visibility;
@@ -168,20 +170,22 @@ hand-design (QBER 1.05 %, ~8 Mbps, 0.8 ns delay line) and prices the **whole lin
 re-prices Bob ($35k → $329k) and re-derives the board; dropping the modulator ER below ~20 dB
 flags the link infeasible. A `DeviceSpec` is shareable YAML — the **headless core a drag-and-drop
 GUI will later drive**. The detailed circuit (schematic/SPICE/PCB) stays in the expert reference
-design (`docs/03`, `hardware/`) + KiCad; the configurator *selects and parametrises* it.
+design (`docs/03`, `hardware/`) + KiCad; the configurator *selects and parametrises* it. The
+**sensing** and **QC-hardware** domains reuse the closed-form figures validated in M3/M4 (so the
+GUI is instant): the magnetometer reproduces the e≈2.72× projection-noise prefactor and the
+1/√N scaling; the qubit processor reproduces the M4 gate infidelity (≈3.2×10⁻⁴) + Bell fidelity.
 
-## Status — G1 (the virtual-bench GUI)
+## Status — G1 (the multi-domain virtual-bench GUI)
 
-A thin web front-end (`gui/`) over `configure()` — the first GUI layer of the "virtual quantum
-bench". Flask backend + a single static vanilla-JS page (no build step; engine server-side, per
-the browser/no-install/modest-hardware mission). Turn the knobs (detector, source, QRNG,
-distance, gate rate, modulator ER, AMZI visibility, channels) and the page live-updates the
-feasibility badge, QBER / SKR / whole-link cost, the SKR-vs-distance + BOM-cost figure, the
-color-coded design rules, and the Alice/shared/Bob BOM. Verified end-to-end with headless
-Chromium (swapping the detector knob updates SKR 7.9 → 26 Mbps and cost $57k → $350k live). This
-is the form-based first step toward the node-editor flagship; the `DeviceSpec` data model and
-the headless `configure()` core are exactly what that editor will sit on. Run: `python -m
-gui.server` → `http://127.0.0.1:8000` (see `gui/README.md`).
+A thin web front-end (`gui/`) over the configurator — the first GUI layer of the "virtual
+quantum bench". Flask backend + a single static vanilla-JS page (no build step; engine
+server-side, per the browser/no-install/modest-hardware mission). A **domain dropdown** (QKD /
+sensing / QC hardware) loads that domain's knob schema and **builds the knobs dynamically**;
+turning any knob live-updates the feasibility badge, the domain's metrics, a swept figure +
+BOM-cost split, the color-coded design rules, and the BOM grouped by side. One generic UI renders
+all domains because the `ConfigReport` shape is uniform. Verified end-to-end across all three
+domains with headless Chromium (`gui/screenshot.py`). Run: `python -m gui.server` →
+`http://127.0.0.1:8000` (see `gui/README.md`).
 
 ## Install & run
 
@@ -260,8 +264,9 @@ qsim/sensing/   sensing plugin: atomic magnetometer — Bloch backend, blocks, S
                 metrics, two-tier validation, scenario (kernel-generality proof, M3)
 qsim/qchw/      QC-hardware plugin: multi-qubit density-matrix/Lindblad backend, gates+CNOT,
                 Clifford group, randomized benchmarking, Bell device, two-tier validation (M4)
-qsim/configurator/  reference-design configurator (C1): DeviceSpec + variant catalog + compile
-                (spec -> qsim sim + BOM + board params + design rules); the headless GUI core
+qsim/configurator/  multi-domain configurator (C1/C2/C3): report (generic ConfigReport) +
+                registry + domains/{qkd,sensing,qchw} + catalog + spec; configure(domain,knobs)
+                -> sim + BOM + board params + design rules. The headless GUI core.
 qsim/profiles/  calibration profiles (YAML, with provenance)
 scenarios/      declarative experiment files (decoy_bb84_25km, qrng_balanced, magnetometer_rb,
                 rb_transmon, bell_device_2q)
@@ -290,12 +295,13 @@ gating board (ngspice-simulated cancellation, schematic + KiCad netlist + BOM, q
 design-validation; `docs/03`) — and **C1** — the reference-design configurator tying high-level
 knobs to sim + BOM + board params + design rules (`qsim/configurator/`).
 
-Then the user-facing layers: **C1/C2** — the reference-design configurator (one DeviceSpec →
-sim + whole-link BOM + board params + design rules; `qsim/configurator/`) — and **G1** — a thin
-web GUI over it (`gui/`), the first step of the virtual quantum bench.
+Then the user-facing layers: **C1/C2/C3** — the multi-domain reference-design configurator (one
+`configure(domain, knobs)` core → sim + BOM + board params + design rules across QKD, sensing,
+QC hardware; `qsim/configurator/`) — and **G1** — a thin, domain-aware web GUI over it (`gui/`),
+the virtual quantum bench (form-based first step).
 
-Next candidates: the node-editor (drag-and-drop) front-end on top of the configurator (the
-education flagship); PCB layout (KiCad) + Bob FPGA firmware (Verilog/Verilator) for H1; the
+Next candidates: the node-editor (drag-and-drop canvas) front-end on top of the configurator
+(the education flagship); PCB layout (KiCad) + Bob FPGA firmware (Verilog/Verilator) for H1; the
 Alice timing/laser-driver board; a QuTiP/sparse backend for larger qubit counts; and a QKD
 hardware-data match for a production-grade key-rate claim.
 

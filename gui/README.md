@@ -1,9 +1,11 @@
 # qsim virtual-bench GUI (G1)
 
-A thin web front-end over the configurator core (`qsim.configurator.configure`). Pick device
-knobs → the QKD-link simulation, the whole-link BOM, the board parameters and the design-rule
-checks update together. First step toward the drag-and-drop "virtual quantum bench"; the engine
-stays server-side (browser, no install, modest client hardware).
+A thin, **multi-domain** web front-end over the configurator core
+(`qsim.configurator.configure`). Pick a domain (QKD link / atomic magnetometer / qubit
+processor), then turn its knobs → the simulation, the BOM, the board parameters and the
+design-rule checks update together. One generic UI renders any domain (the report shape is
+uniform). First step toward the drag-and-drop "virtual quantum bench"; the engine stays
+server-side (browser, no install, modest client hardware).
 
 ## Run
 
@@ -20,8 +22,9 @@ the color-coded design rules, and the Alice/shared/Bob BOM.
 ## Endpoints
 
 - `GET /` — the single-page UI (`gui/index.html`, vanilla JS, no build step).
-- `GET /api/catalog` — variant options for the dropdowns + the default `DeviceSpec`.
-- `POST /api/configure` — `{DeviceSpec knobs}` → `ConfigReport` JSON + a base64 PNG figure.
+- `GET /api/domains` — `[{name, label}, ...]` for the domain dropdown.
+- `GET /api/schema/<domain>` — `{schema, defaults}` driving the dynamic knob form.
+- `POST /api/configure` — `{domain, knobs}` → `ConfigReport` JSON + a base64 PNG figure.
 
 ## Verify the render (headless)
 

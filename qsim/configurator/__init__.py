@@ -1,22 +1,22 @@
-"""qsim configurator — the reference-design configurator (headless core).
+"""qsim configurator — the multi-domain reference-design configurator (headless core).
 
-This is the answer to "can a user design their own device, or only print a fixed BOM?".
-It is NOT a schematic-capture tool (reinventing KiCad would be pointless) and NOT a fixed
-catalog. It is the middle ground: a high-level `DeviceSpec` of physically-meaningful knobs
-(detector type, gate rate, channels, distance, ...) that drives BOTH
+A high-level knob set (per domain) drives, from one source of truth, the behavioural
+simulation, the reference hardware BOM + board parameters, and design-rule checks. One GUI
+renders any domain because the report shape is uniform (see report.ConfigReport).
 
-  * the BEHAVIOURAL simulation (qsim -> QBER / secret-key rate), and
-  * the reference HARDWARE design (BOM assembly + derived board parameters),
+Domains plug in via a registry (mirrors the kernel's plugin pattern): QKD link (decoy-BB84),
+atomic-magnetometer sensing, and few-qubit QC hardware. NOT a schematic editor (that would
+reinvent KiCad); the detailed circuit lives in the expert reference design (docs/03, hardware/)
++ KiCad — the configurator selects and parametrises it.
 
-consistently, with design-rule checks tying them together. Turn one knob and the predicted
-performance, the parts list, and the board parameters all update together — and illegal
-combinations are flagged. The DeviceSpec is shareable data (YAML), so this is the headless
-core a drag-and-drop GUI will later sit on top of (the "virtual quantum bench").
-
-The detailed circuit (schematic/SPICE/PCB) stays in the expert reference design (docs/03,
-hardware/) and KiCad; the configurator selects and parametrises it, it does not redraw it.
+    from qsim.configurator import configure, list_domains, domain_schema
+    rep = configure("qkd", {"detector": "ingaas_sd", "distance_km": 25})
+    print(rep.format())
 """
+from .report import BomItem, ConfigReport, Metric
+from .registry import configure, domain_schema, list_domains, sweep_of
 from .spec import DeviceSpec
-from .compile import configure, ConfigReport
+from . import domains  # noqa: F401  (import side effect: register qkd/sensing/qchw)
 
-__all__ = ["DeviceSpec", "configure", "ConfigReport"]
+__all__ = ["configure", "list_domains", "domain_schema", "sweep_of",
+           "ConfigReport", "Metric", "BomItem", "DeviceSpec"]

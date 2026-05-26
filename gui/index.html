@@ -8,29 +8,26 @@
   :root { --bg:#0f1720; --panel:#16212e; --ink:#e8eef4; --mut:#9fb0c0; --line:#2a3a4d;
           --accent:#2f9e9e; --ok:#27ae60; --warn:#e67e22; --fail:#c0392b; --info:#2980b9; }
   * { box-sizing:border-box; }
-  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg);
-         color:var(--ink); }
-  header { padding:14px 22px; border-bottom:1px solid var(--line); display:flex;
-           align-items:baseline; gap:12px; }
+  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:14px 22px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
   header h1 { font-size:18px; margin:0; }
   header span { color:var(--mut); font-size:12px; }
+  header select { margin-left:auto; background:#0e1722; color:var(--ink); border:1px solid var(--accent);
+                  border-radius:6px; padding:6px 10px; font-size:14px; }
   .wrap { display:grid; grid-template-columns:330px 1fr; gap:18px; padding:18px 22px; }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut);
-       margin:0 0 12px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:0 0 12px; }
   label { display:block; margin:10px 0 4px; color:var(--mut); font-size:12px; }
   select, input[type=number] { width:100%; background:#0e1722; color:var(--ink);
        border:1px solid var(--line); border-radius:6px; padding:7px 8px; }
   input[type=range] { width:100%; }
   .rngval { float:right; color:var(--accent); font-variant-numeric:tabular-nums; }
-  .badge { display:inline-block; padding:5px 12px; border-radius:999px; font-weight:600;
-           font-size:13px; }
+  .badge { display:inline-block; padding:5px 12px; border-radius:999px; font-weight:600; font-size:13px; }
   .badge.ok { background:rgba(39,174,96,.18); color:#5fe0a0; border:1px solid #27ae60; }
   .badge.fail { background:rgba(192,57,43,.18); color:#ff8b7e; border:1px solid #c0392b; }
-  .metrics { display:flex; gap:14px; margin:14px 0; flex-wrap:wrap; }
-  .metric { flex:1; min-width:120px; background:#0e1722; border:1px solid var(--line);
-            border-radius:8px; padding:10px 12px; }
-  .metric .v { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .metrics { display:flex; gap:12px; margin:14px 0; flex-wrap:wrap; }
+  .metric { flex:1; min-width:130px; background:#0e1722; border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  .metric .v { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
   .metric .k { color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
   img#fig { width:100%; border-radius:8px; background:#fff; margin-top:8px; }
   .rule { padding:5px 10px; border-radius:6px; margin:4px 0; font-size:13px; }
@@ -42,44 +39,27 @@
   th,td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
   .side { color:var(--accent); font-weight:600; padding-top:10px; }
-  .sub td { color:var(--mut); border-bottom:1px solid var(--line); }
-  #busy { color:var(--accent); font-size:12px; }
+  .sub td { color:var(--mut); }
+  #busy { color:var(--accent); font-size:12px; min-height:16px; }
 </style>
 </head>
 <body>
 <header>
   <h1>qsim · virtual quantum bench</h1>
-  <span>configure a QKD link — turn knobs, the simulation & whole-link BOM update together</span>
+  <span>configure a quantum device — turn knobs, the simulation &amp; BOM update together</span>
+  <select id="domain"></select>
 </header>
 <div class="wrap">
-  <div class="panel" id="controls">
+  <div class="panel">
     <h2>Device knobs</h2>
-    <label>Detector (Bob)</label><select id="detector"></select>
-    <label>Laser source (Alice)</label><select id="source"></select>
-    <label>QRNG (Alice)</label><select id="qrng"></select>
-    <label>Detector channels</label>
-    <select id="n_channels"><option>2</option><option>4</option></select>
-    <label>Distance <span class="rngval" id="distance_km_v"></span></label>
-    <input type="range" id="distance_km" min="1" max="120" step="1"/>
-    <label>Gate rate (GHz) <span class="rngval" id="gate_rate_ghz_v"></span></label>
-    <input type="range" id="gate_rate_ghz" min="0.1" max="2.5" step="0.05"/>
-    <label>Modulator extinction ratio (dB) <span class="rngval" id="modulator_er_db_v"></span></label>
-    <input type="range" id="modulator_er_db" min="10" max="40" step="1"/>
-    <label>Bob AMZI visibility</label>
-    <input type="number" id="amzi_visibility" min="0.8" max="1" step="0.005"/>
+    <div id="knobs"></div>
     <div id="busy" style="margin-top:12px"></div>
   </div>
-
-  <div class="panel" id="results">
-    <h2>Configured link <span id="name" style="color:var(--ink)"></span></h2>
+  <div class="panel">
+    <h2>Configured device <span id="dlabel" style="color:var(--ink)"></span></h2>
     <div id="badge"></div>
-    <div class="metrics">
-      <div class="metric"><div class="v" id="m_qber">–</div><div class="k">QBER</div></div>
-      <div class="metric"><div class="v" id="m_skr">–</div><div class="k">secret-key rate</div></div>
-      <div class="metric"><div class="v" id="m_cost">–</div><div class="k">whole-link BOM</div></div>
-      <div class="metric"><div class="v" id="m_loss">–</div><div class="k">link loss</div></div>
-    </div>
-    <img id="fig" alt="SKR vs distance and BOM cost"/>
+    <div class="metrics" id="metrics"></div>
+    <img id="fig" alt="domain figure"/>
     <h2 style="margin-top:18px">Design rules</h2>
     <div id="rules"></div>
     <h2 style="margin-top:18px">Bill of materials</h2>
@@ -89,71 +69,74 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const KNOBS = ["detector","source","qrng","n_channels","distance_km","gate_rate_ghz",
-               "modulator_er_db","amzi_visibility"];
-let timer = null;
+let schema = [], defaults = {}, timer = null;
 
-function fmtSKR(bps){ if(bps<=0) return "0";
-  if(bps>=1e6) return (bps/1e6).toFixed(2)+" Mbps";
-  if(bps>=1e3) return (bps/1e3).toFixed(1)+" kbps"; return bps.toFixed(0)+" bps"; }
+function coerce(v){ const n = Number(v);
+  return (v!=="" && !isNaN(n) && /^[0-9.eE+-]+$/.test(String(v))) ? n : v; }
 
 async function init(){
-  const cat = await (await fetch("/api/catalog")).json();
-  const d = cat.default;
-  for(const f of ["detector","source","qrng"]){
-    $(f).innerHTML = cat.options[f].map(o=>`<option value="${o.key}">${o.label}</option>`).join("");
-    $(f).value = d[f];
-  }
-  $("n_channels").value = d.n_channels;
-  $("distance_km").value = d.distance_km;
-  $("gate_rate_ghz").value = (d.gate_rate_hz/1e9);
-  $("modulator_er_db").value = d.modulator_er_db;
-  $("amzi_visibility").value = d.amzi_visibility;
-  KNOBS.forEach(f => $(f).addEventListener("input", onChange));
-  syncLabels(); run();
+  const doms = await (await fetch("/api/domains")).json();
+  $("domain").innerHTML = doms.map(d=>`<option value="${d.name}">${d.label}</option>`).join("");
+  $("domain").addEventListener("change", loadDomain);
+  await loadDomain();
 }
 
-function syncLabels(){
-  $("distance_km_v").textContent = $("distance_km").value+" km";
-  $("gate_rate_ghz_v").textContent = (+$("gate_rate_ghz").value).toFixed(2)+" GHz";
-  $("modulator_er_db_v").textContent = $("modulator_er_db").value+" dB";
+async function loadDomain(){
+  const dom = $("domain").value;
+  const s = await (await fetch("/api/schema/"+dom)).json();
+  schema = s.schema; defaults = s.defaults; $("dlabel").textContent = "· "+s.label;
+  $("knobs").innerHTML = schema.map(k=>knobHtml(k)).join("");
+  schema.forEach(k=>{
+    const el = $("k_"+k.key); el.addEventListener("input", onChange);
+    if(k.type==="range") syncLabel(k);
+  });
+  run();
 }
-function onChange(){ syncLabels(); clearTimeout(timer); timer = setTimeout(run, 220); }
+
+function knobHtml(k){
+  const d = defaults[k.key];
+  const u = k.unit ? ` <span class="rngval" id="v_${k.key}"></span>` : "";
+  if(k.type==="select"){
+    const opts = k.options.map(o=>`<option value="${o.key}" ${o.key==d?"selected":""}>${o.label}</option>`).join("");
+    return `<label>${k.label}</label><select id="k_${k.key}">${opts}</select>`;
+  }
+  if(k.type==="range")
+    return `<label>${k.label}${u}</label><input type="range" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/>`;
+  return `<label>${k.label}</label><input type="number" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/>`;
+}
+
+function syncLabel(k){ const el=$("v_"+k.key); if(el) el.textContent = (+$("k_"+k.key).value)+ (k.unit?(" "+k.unit):""); }
+function onChange(e){ schema.forEach(k=>{ if(k.type==="range") syncLabel(k); });
+  clearTimeout(timer); timer=setTimeout(run, 220); }
+
+function collect(){ const knobs={}; schema.forEach(k=>{ knobs[k.key]=coerce($("k_"+k.key).value); }); return knobs; }
 
 async function run(){
-  $("busy").textContent = "computing…";
-  const spec = {
-    name:"bench_link", detector:$("detector").value, source:$("source").value,
-    qrng:$("qrng").value, n_channels:+$("n_channels").value,
-    distance_km:+$("distance_km").value, gate_rate_hz:(+$("gate_rate_ghz").value)*1e9,
-    modulator_er_db:+$("modulator_er_db").value, amzi_visibility:+$("amzi_visibility").value,
-  };
+  $("busy").textContent="computing…";
   const r = await (await fetch("/api/configure",{method:"POST",
-    headers:{"Content-Type":"application/json"}, body:JSON.stringify(spec)})).json();
-  $("busy").textContent = "";
-  if(r.error){ $("badge").innerHTML = `<span class="badge fail">ERROR: ${r.error}</span>`; return; }
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({domain:$("domain").value, knobs:collect()})})).json();
+  $("busy").textContent="";
+  if(r.error){ $("badge").innerHTML=`<span class="badge fail">ERROR: ${r.error}</span>`; return; }
   render(r);
 }
 
 function render(r){
   $("badge").innerHTML = r.feasible
-    ? '<span class="badge ok">✓ FEASIBLE</span>'
-    : '<span class="badge fail">✗ NOT FEASIBLE</span>';
-  $("m_qber").textContent = (r.qber*100).toFixed(2)+" %";
-  $("m_skr").textContent = fmtSKR(r.skr_bps);
-  $("m_cost").textContent = "$"+(r.bom_total_usd/1e3).toFixed(0)+"k";
-  $("m_loss").textContent = r.loss_db.toFixed(1)+" dB";
+    ? '<span class="badge ok">✓ FEASIBLE</span>' : '<span class="badge fail">✗ NOT FEASIBLE</span>';
+  $("metrics").innerHTML = r.metrics.map(m=>
+    `<div class="metric"><div class="v">${m.display}</div><div class="k">${m.label}</div></div>`).join("");
   $("fig").src = "data:image/png;base64,"+r.figure_b64;
   $("rules").innerHTML = r.rules.map(x=>`<div class="rule ${x.level}"><b>${x.level}</b> · ${x.msg}</div>`).join("");
-  const sides = ["Alice","shared","Bob"]; let rows = "";
-  for(const sd of sides){
-    const items = r.bom.filter(i=>i.side===sd); if(!items.length) continue;
-    rows += `<tr><td class="side" colspan="3">${sd}</td></tr>`;
+  let rows="";
+  for(const side of Object.keys(r.cost_by_side)){
+    const items = r.bom.filter(i=>i.side===side); if(!items.length) continue;
+    rows += `<tr><td class="side" colspan="3">${side}</td></tr>`;
     for(const it of items)
       rows += `<tr><td>${it.ref} ×${it.qty}</td><td>${it.part}</td><td class="num">$${it.line_cost_usd.toLocaleString()}</td></tr>`;
-    rows += `<tr class="sub"><td></td><td>${sd} subtotal</td><td class="num">$${r.cost_by_side[sd].toLocaleString()}</td></tr>`;
+    rows += `<tr class="sub"><td></td><td>${side} subtotal</td><td class="num">$${r.cost_by_side[side].toLocaleString()}</td></tr>`;
   }
-  rows += `<tr><td></td><td><b>LINK TOTAL</b></td><td class="num"><b>$${r.bom_total_usd.toLocaleString()}</b></td></tr>`;
+  rows += `<tr><td></td><td><b>TOTAL</b></td><td class="num"><b>$${r.bom_total_usd.toLocaleString()}</b></td></tr>`;
   $("bom").querySelector("tbody").innerHTML = rows;
 }
 init();

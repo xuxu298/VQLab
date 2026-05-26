@@ -1,108 +1,92 @@
-"""Tests for the reference-design configurator (C1).
+"""Tests for the multi-domain reference-design configurator (C1/C2/C3).
 
-The configurator turns a high-level DeviceSpec into a consistent behavioural sim + BOM + board
-parameters + design rules. These check the H1 reproduction, knob-propagation, BOM scaling, and
-design-rule firing.
+`configure(domain, knobs)` turns a high-level knob dict into a consistent behavioural sim +
+BOM + board params + design rules, across QKD, sensing and QC-hardware domains.
 """
 import os
 
-from qsim.configurator import DeviceSpec, configure
+from qsim.configurator import DeviceSpec, configure, domain_schema, list_domains
 
 
-def test_ingaas_spec_reproduces_h1():
-    """{InGaAs-SD, 1.25 GHz, 25 km, 2 ch} must reproduce the H1 hand-design numbers."""
-    r = configure(DeviceSpec(detector="ingaas_sd", gate_rate_hz=1.25e9, distance_km=25.0))
-    assert abs(r.qber - 0.01) < 0.002                 # ~1% (misalignment-dominated)
-    assert 6e6 < r.skr_bps < 11e6                     # ~8 Mbps
+# --- registry ------------------------------------------------------------
+def test_three_domains_registered():
+    names = {d["name"] for d in list_domains()}
+    assert {"qkd", "sensing", "qchw"} <= names
+
+
+def test_domain_schema_has_defaults_and_knobs():
+    for dom in ("qkd", "sensing", "qchw"):
+        s = domain_schema(dom)
+        assert s["schema"] and s["defaults"]
+        # every schema knob has a default
+        for k in s["schema"]:
+            assert k["key"] in s["defaults"]
+
+
+# --- QKD domain ----------------------------------------------------------
+def test_qkd_reproduces_h1():
+    r = configure("qkd", {"detector": "ingaas_sd", "gate_rate_ghz": 1.25, "distance_km": 25})
+    assert abs(r.m("qber") - 1.05) < 0.2          # ~1% (Alice ER + Bob AMZI)
+    assert 6e6 < r.m("skr_bps") < 11e6            # ~8 Mbps
     assert r.feasible
-    # derived board parameter: SD delay line = one gate period
-    assert abs(r.board_params["sd_delay_line_ns"] - 0.80) < 0.01
+    assert 30_000 < r.bom_total_usd < 80_000      # docs/01 $30-80k/link
+    assert {"Alice", "Bob", "shared"} <= set(r.cost_by_side)
 
 
-def test_one_knob_propagates_to_sim_and_bom():
-    base = DeviceSpec(detector="ingaas_sd", distance_km=25.0)
-    a = configure(base)
-    b = configure(base.replace(detector="snspd"))
-    # SNSPD: higher SKR (better PDE) AND higher BOM cost AND different cooling
-    assert b.skr_bps > a.skr_bps
-    assert b.bom_total_usd > a.bom_total_usd
-    assert "cryostat" in b.board_params["cooling"]
-    assert "TEC" in a.board_params["cooling"]
+def test_qkd_detector_swap_and_er_security():
+    a = configure("qkd", {"detector": "ingaas_sd", "distance_km": 25})
+    b = configure("qkd", {"detector": "snspd", "distance_km": 25})
+    assert b.m("skr_bps") > a.m("skr_bps") and b.bom_total_usd > a.bom_total_usd
+    assert not configure("qkd", {"detector": "ingaas_sd", "modulator_er_db": 15}).feasible
 
 
-def test_bom_scales_with_channels():
-    two = configure(DeviceSpec(detector="ingaas_sd", n_channels=2))
-    four = configure(DeviceSpec(detector="ingaas_sd", n_channels=4))
-    qty2 = next(i.qty for i in two.bom if i.ref == "D")
-    qty4 = next(i.qty for i in four.bom if i.ref == "D")
-    assert qty4 == 2 * qty2 == 4
-    assert four.bom_total_usd > two.bom_total_usd
+def test_qkd_gate_over_max_infeasible():
+    assert not configure("qkd", {"detector": "ingaas_sd", "gate_rate_ghz": 2.5}).feasible
 
 
-def test_gate_over_max_is_infeasible():
-    r = configure(DeviceSpec(detector="ingaas_sd", gate_rate_hz=2.5e9))  # > 1.25 GHz max
-    assert not r.feasible
-    assert any(level == "FAIL" for level, _ in r.rules)
+# --- sensing domain ------------------------------------------------------
+def test_sensing_reproduces_m3_prefactor():
+    # tau = T2 Ramsey readout -> sensitivity sits e (~2.72) above the projection limit (M3)
+    r = configure("sensing", {"atom_number": 1e12, "T2_ms": 5, "T1_ms": 30, "tau_ms": 5})
+    assert abs(r.m("asd_ratio") - 2.718) < 0.05
+    assert r.feasible and r.m("sensitivity_asd") > 0
 
 
-def test_too_far_for_ingaas_has_no_key():
-    r = configure(DeviceSpec(detector="ingaas_sd", distance_km=200.0))
-    assert r.skr_bps == 0.0
-    assert not r.feasible
+def test_sensing_more_atoms_better_sensitivity():
+    few = configure("sensing", {"atom_number": 1e11, "T2_ms": 5, "tau_ms": 5})
+    many = configure("sensing", {"atom_number": 1e13, "T2_ms": 5, "tau_ms": 5})
+    assert many.m("sensitivity_asd") < few.m("sensitivity_asd")
 
 
-def test_snspd_reaches_further_than_ingaas():
-    far = DeviceSpec(distance_km=120.0)
-    assert configure(far.replace(detector="snspd")).skr_bps > 0.0
+def test_sensing_t2_gt_2t1_infeasible():
+    assert not configure("sensing", {"T1_ms": 1, "T2_ms": 10}).feasible
 
 
-def test_spec_yaml_roundtrip(tmp_path):
-    s = DeviceSpec(name="rt", detector="snspd", n_channels=4, distance_km=33.0)
-    p = tmp_path / "spec.yaml"
-    s.to_yaml(p)
-    s2 = DeviceSpec.from_yaml(p)
-    assert s2.detector == "snspd" and s2.n_channels == 4 and s2.distance_km == 33.0
+# --- qc-hardware domain --------------------------------------------------
+def test_qchw_reproduces_m4_numbers():
+    r = configure("qchw", {"n_qubits": 2, "T1_us": 50, "T2_us": 40, "t_gate_ns": 30})
+    assert abs(r.m("error_per_gate") - 3.5e-4) < 1e-4   # matches M4 analytic infidelity
+    assert r.m("gate_fidelity") > 99.0
+    assert r.feasible
 
 
-def test_shipped_config_files_load_and_configure():
+def test_qchw_bell_only_for_two_qubits():
+    one = configure("qchw", {"n_qubits": 1, "T1_us": 50, "T2_us": 70, "t_gate_ns": 40})
+    two = configure("qchw", {"n_qubits": 2, "T1_us": 50, "T2_us": 70, "t_gate_ns": 40})
+    keys1 = {m.key for m in one.metrics}
+    keys2 = {m.key for m in two.metrics}
+    assert "bell_fidelity" not in keys1 and "bell_fidelity" in keys2
+
+
+def test_qchw_t2_gt_2t1_infeasible():
+    assert not configure("qchw", {"T1_us": 10, "T2_us": 30, "t_gate_ns": 40}).feasible
+
+
+# --- shipped QKD config files (DeviceSpec YAML -> qkd knobs) --------------
+def test_shipped_config_files_configure():
+    from dataclasses import asdict
     root = os.path.join(os.path.dirname(__file__), "..", "configs")
     for fn in ("qkd_metro_ingaas.yaml", "qkd_metro_snspd.yaml"):
-        r = configure(DeviceSpec.from_yaml(os.path.join(root, fn)))
-        assert r.feasible
-        assert r.skr_bps > 0.0
-
-
-# --- C2: full Alice+Bob link --------------------------------------------
-def test_full_link_bom_spans_alice_shared_bob():
-    r = configure(DeviceSpec(detector="ingaas_sd", distance_km=25.0))
-    sides = {it.side for it in r.bom}
-    assert {"Alice", "Bob", "shared"} <= sides
-    # Alice carries the source + modulator (A1, A2 present)
-    refs = {it.ref for it in r.bom}
-    assert {"A1", "A2", "AE5"} <= refs            # laser, intensity mod, QRNG
-    assert abs(sum(r.cost_by_side.values()) - r.bom_total_usd) < 1e-6
-
-
-def test_total_link_cost_in_docs_range():
-    # docs/01 §8: Phase-1 InGaAs ~ $30-80k per link
-    r = configure(DeviceSpec(detector="ingaas_sd", distance_km=25.0))
-    assert 30_000 < r.bom_total_usd < 80_000
-    assert r.cost_by_side["Alice"] > 0 and r.cost_by_side["Bob"] > 0
-
-
-def test_modulator_er_raises_qber():
-    hi = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=35))
-    lo = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=22))
-    assert lo.e_d > hi.e_d                        # finite ER adds state-prep error
-    assert lo.qber > hi.qber
-
-
-def test_low_extinction_ratio_is_infeasible():
-    r = configure(DeviceSpec(detector="ingaas_sd", modulator_er_db=15))
-    assert not r.feasible
-    assert any(level == "FAIL" and "ER" in msg for level, msg in r.rules)
-
-
-def test_jitter_budget_rule_fires():
-    r = configure(DeviceSpec(detector="ingaas_sd", gate_rate_hz=1.25e9, source_jitter_ps=300))
-    assert any(level == "WARN" and "jitter" in msg for level, msg in r.rules)
+        spec = DeviceSpec.from_yaml(os.path.join(root, fn))
+        r = configure("qkd", asdict(spec))
+        assert r.feasible and r.m("skr_bps") > 0

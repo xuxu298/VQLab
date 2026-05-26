@@ -68,6 +68,26 @@ composably-secure **finite-key** bound replacing M0's placeholder asymptotic fra
 
 `pytest tests/test_finite_key.py tests/test_decoy_engine.py` covers both.
 
+## Status — M2 (productizing the tuning loop + proving modularity)
+
+M2 turns the device model into a usable **virtual bench** and shows the kernel is not
+QKD-shaped:
+
+- **Sweep / optimize harness** (`qsim/core/sweep.py`) — domain-agnostic `sweep(run_fn, grid)`
+  (with 2-D surfaces) and `optimize(run_fn, bounds, metric)`. The "vary a knob, watch the
+  metric" UX. Demo `m2_tuning_loop.py` finds the SKR-optimal intensity (μ₁≈0.62) and maps
+  the (μ₁, p_Z) sensitivity surface.
+- **QRNG plugin** (`qsim/qrng/`) — a beam-splitter QRNG built from the **same kernel
+  primitives, zero new kernel code** (spec §10). Min-entropy metric: balanced detectors →
+  0.9995 bits/bit; efficiency mismatch → less extractable randomness. Proof of modularity.
+- **Declarative scenarios** (`qsim/core/scenario.py` + `scenarios/*.yaml`) — an experiment is
+  one shareable file naming a registered runner + params; plugins register runners on import
+  (the kernel never imports a plugin).
+- **Interactive notebook** (`notebooks/M2_tuning_loop.ipynb`) — build → run → sweep/optimize →
+  read a validated metric, across both domains.
+
+Still open in M2: a richer calibration/uncertainty-propagation framework and a web GUI.
+
 ## Install & run
 
 ```bash
@@ -76,6 +96,8 @@ python -m demos.m0_qber_demo        # M0 physics: QBER/SKR vs distance, phase-lo
 python -m demos.m0_validation       # M0 make-or-break: batched engine vs brute-force ground truth
 python -m demos.m1_rusca_validation # M1 credibility: reproduce Rusca 2018 finite-key SKR figure
 python -m demos.m1_engine_skr       # M1 capstone: engine-driven proven SKR, phase-lock ON vs OFF
+python -m demos.m2_tuning_loop      # M2 tuning loop: sweep/optimize the SKR over mu1, p_Z
+jupyter notebook notebooks/M2_tuning_loop.ipynb   # M2 interactive virtual bench
 pytest -q
 ```
 
@@ -107,21 +129,27 @@ Outputs (`demos/figures/`):
 ## Layout
 
 ```
-qsim/core/      kernel: signals, block, graph, scheduler, backends, impairments, calibration, probes
+qsim/core/      kernel: signals, block, graph, scheduler, backends, impairments, calibration,
+                probes, sweep (tuning loop), scenario (declarative experiments)
 qsim/qkd/       QKD plugin: blocks (M0 + decoy-BB84), reference builders, metrics,
-                bruteforce (M0 ground truth), validation (engine-vs-truth harness),
-                finite_key (Rusca 2018), channel (decoy model), keyrate (SKR optimise/scale)
+                bruteforce (M0 ground truth), validation, finite_key (Rusca 2018),
+                channel (decoy model), keyrate (SKR optimise/scale), scenarios
+qsim/qrng/      QRNG plugin: beam-splitter QRNG built from kernel primitives (modularity)
 qsim/profiles/  calibration profiles (YAML, with provenance)
-demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr
-tests/          test_m0, test_validation (M0); test_finite_key, test_decoy_engine (M1)
+scenarios/      declarative experiment files (decoy_bb84_25km.yaml, qrng_balanced.yaml)
+demos/          m0_qber_demo, m0_validation, m1_rusca_validation, m1_engine_skr, m2_tuning_loop
+notebooks/      M0_qber_demo, M2_tuning_loop (interactive virtual bench)
+tests/          test_m0, test_validation, test_finite_key, test_decoy_engine, test_sweep,
+                test_qrng, test_scenario
 docs/           architecture (01) + kernel spec (02)
 ```
 
 ## Roadmap
 
 M0 kernel+QKD slice ✓ → M1 decoy-BB84 + finite-key (Rusca 2018), validated vs published
-figure ✓ → M2 calibration framework + scenario files + sweep/optimize + QRNG plugin + Jupyter
-UX → M3 sensing plugin (Bloch/QuTiP) → M4 QC-hardware plugin (Lindblad/QuTiP).
+figure ✓ → M2 sweep/optimize + scenario files + QRNG plugin + Jupyter UX ✓ (calibration-
+uncertainty framework + web GUI still open) → M3 sensing plugin (Bloch/QuTiP) → M4
+QC-hardware plugin (Lindblad/QuTiP).
 
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
 detector data (vs the current published-simulation match), and fold dead-time into the

@@ -132,14 +132,48 @@ The circuit is captured as a version-controlled schematic and a machine-readable
 
 The RF blocks (Wilkinson, hybrid, coax delay) carry placeholder `QResearch:` footprints; in
 the layout pass they become connectorised modules or controlled-impedance microstrip
-structures. KiCad is a GUI step (PCB place & route, 50 Ω stackup, length-tuned delay trace),
-not scriptable here — the netlist is the hand-off into it.
+structures. The PCB layout is done **headless** (see §4b) via KiCad's `pcbnew` Python API — no
+GUI needed — with the netlist as the hand-off.
 
 > **Giải thích — bản vẽ & netlist:** mạch được "chụp" thành (1) **bản vẽ schematic** (file PNG sinh
 > bằng `schematic.py`, xem được, có designator + giá trị), (2) **netlist** import thẳng vào KiCad
 > Pcbnew để bắt đầu layout PCB, và (3) **BOM** part-number thật. Khối RF (splitter/hybrid/dây trễ)
-> để footprint tạm; vào layout sẽ thành module hoặc đường microstrip trở kháng 50 Ω. Bước layout PCB
-> (đặt linh kiện, đi dây, chỉnh chiều dài dây trễ) làm trong **KiCad GUI** — netlist là đầu vào cho nó.
+> để footprint tạm; vào layout thành module hoặc đường microstrip 50 Ω. Bước layout PCB chạy
+> **headless** (§4b) bằng API Python `pcbnew` của KiCad — không cần GUI.
+
+## 4b. PCB layout (programmatic, headless)
+
+`hardware/bob_gating_board/layout.py` turns the netlist into a physical board with the KiCad
+`pcbnew` Python API — **no GUI** — encoding the layout choices that set this board's performance
+(the moat, [[qkd_moat_is_execution]]):
+
+- **50 Ω controlled-impedance microstrip.** A 4-layer FR4 stackup (signal / inner GND / power /
+  signal); the RF trace width is *solved* for 50 Ω from the microstrip model — **0.392 mm** at
+  Er=4.3, h=0.2 mm (Er_eff≈3.27).
+- **The self-differencing delay line.** Realised as a **length-tuned meander** (the docs/03 §7
+  "trace" option). Its physical length is computed from the substrate velocity
+  (v_eff≈1.66×10⁸ m/s), and the delay arm is laid so that **arm_B − arm_A = 132.7 mm = exactly
+  one 1.25 GHz gate period (0.80 ns)** — the condition that cancels the periodic gate transient
+  while the aperiodic avalanche survives (§3). The discrete `DL1` coax is thus absorbed into the
+  board as copper.
+- Ground pour (the microstrip return), board outline, and **Gerber export** (`F_Cu`, `In1_Cu`,
+  `B_Cu`, `Edge_Cuts`) + an SVG/PNG render: `demos/figures/h1_pcb_layout.png`.
+
+`tests/test_layout.py` guards the 50 Ω width and the one-gate-period delay (auto-skipped without
+KiCad). This is a first programmatic pass: the in-code footprints carry the exact net pin names
+(the netlist already names the real vendor footprints for the fab-house revision), and final RF
+tuning — per-harmonic SD trim, exact phase match, impedance verification on the real stackup — is
+bench work. But placement, 50 Ω routing, the tuned delay, the pour, and manufacturable gerbers all
+come straight out of the script.
+
+> **Giải thích — layout PCB tự động, không cần GUI:** `layout.py` biến netlist thành board vật lý
+> bằng API Python `pcbnew`. Nó **giải** bề rộng trace cho 50 Ω (0,392 mm trên FR4), và đặt **dây trễ
+> self-differencing thành đường microstrip uốn khúc (meander) dài đúng 132,7 mm = 0,80 ns = 1 chu kỳ
+> cổng** (điều kiện để khử xung cổng tuần hoàn mà giữ lại thác photon). Kèm đổ đồng ground, viền board,
+> và xuất **Gerber** (file nhà máy cần) + ảnh render `h1_pcb_layout.png`. `tests/test_layout.py` canh
+> hai con số sống còn (50 Ω + độ trễ 1 chu kỳ). Đây là bản layout đầu: tinh chỉnh RF cuối (trim từng
+> hài, khớp pha, kiểm trở kháng trên stackup thật) là việc trên bàn đo — nhưng đặt linh kiện, đi dây
+> 50 Ω, dây trễ tuned, đổ đồng và gerber chế tạo được đều ra thẳng từ script.
 
 ## 5. Component selection (per channel, ×2)
 
@@ -235,9 +269,10 @@ in §4/§6. `tests/test_firmware.py` runs both (auto-skipped without Verilator).
 per-harmonic amplitude/phase trim (path to >65 dB). (2) SD's inverted ghost + one-cycle dead time
 must be handled in firmware. (3) SPAD C_j and V_BR spread part-to-part → per-unit bias calibration.
 
-**Next steps:** (1) ✅ schematic captured + KiCad-importable netlist + BOM (§4a). (2) **PCB
-layout in KiCad** (import `bob_channel.net`; controlled-impedance 50 Ω stackup; the delay line as
-a length-tuned trace/coax) — a GUI step. (3) tighten SPAD device params against the chosen part's
+**Next steps:** (1) ✅ schematic captured + KiCad-importable netlist + BOM (§4a). (2) ✅ **PCB
+layout** — done headless via `pcbnew` Python (§4b, `layout.py`): 50 Ω microstrip + the length-tuned
+0.80 ns delay meander + ground pour + gerbers. Remaining for fab: real vendor footprints + final RF
+trim/impedance verification (bench). (3) tighten SPAD device params against the chosen part's
 datasheet + bench measurement. (4) ✅ **FPGA gate-veto + ghost-reject + LVDS timestamp** firmware
 written & Verilator-validated (§6a, `hardware/bob_fpga/`). (5) Then the Alice timing/laser-driver board.
 

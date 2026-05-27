@@ -274,7 +274,9 @@ layout** — done headless via `pcbnew` Python (§4b, `layout.py`): 50 Ω micros
 0.80 ns delay meander + ground pour + gerbers. Remaining for fab: real vendor footprints + final RF
 trim/impedance verification (bench). (3) tighten SPAD device params against the chosen part's
 datasheet + bench measurement. (4) ✅ **FPGA gate-veto + ghost-reject + LVDS timestamp** firmware
-written & Verilator-validated (§6a, `hardware/bob_fpga/`). (5) Then the Alice timing/laser-driver board.
+written & Verilator-validated (§6a, `hardware/bob_fpga/`). (5) ✅ **Alice gain-switch laser-driver
+board** — ngspice driver + a two-rate-equation laser model give a ~21 ps, phase-randomised optical
+pulse; qsim-closed (`hardware/alice_laser_driver/`, its own README).
 
 > **Giải thích — rủi ro & việc tiếp:** rủi ro chính: dây trễ thực có tổn hao/tán sắc làm khử kém hơn
 > lý tưởng (khắc phục bằng tinh chỉnh từng hài). Việc tiếp: siết thông số SPAD theo datasheet thật →

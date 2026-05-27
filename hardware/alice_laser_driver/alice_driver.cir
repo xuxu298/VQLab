@@ -1,0 +1,53 @@
+* Alice gain-switch laser driver — electrical drive + bias-tee + laser-diode load (H3)
+* =============================================================================
+* Decoy-BB84 needs short (<500 ps), phase-randomised optical pulses at the system
+* rep rate (1.25 GHz Phase-1). Gain switching delivers both: a fast current pulse
+* drives the DFB laser from BELOW threshold to well above it for ~100 ps, so the
+* laser emits one short relaxation-oscillation spike that builds from spontaneous
+* emission -> each pulse has a random optical phase (a security gift: no active
+* phase randomiser needed). Between pulses the bias sits below threshold so the
+* field fully decays and the next pulse is independent.
+*
+* This netlist is the ELECTRICAL half (the moat is the driver + the parasitics):
+* a 50-ohm driver pulse, AC-coupled through a bias-tee onto a DC bias current, into
+* a laser-diode load (forward junction + series R + junction C + bond-wire L). It
+* produces the injection-current waveform i(Vsense); simulate.py feeds that into a
+* two-rate-equation laser model to get the OPTICAL pulse (width + turn-on jitter).
+*
+* Run:  ngspice -b alice_driver.cir   (writes alice_driver.data for the analyser)
+* =============================================================================
+
+.param frep=1.25e9           ; system rep rate (Phase 1)
+.param Trep='1/frep'         ; 0.80 ns
+.param Wp=110p               ; gain-switch drive-pulse width
+.param Tr=25p                ; drive edge (rise/fall) — sets how fast we cross threshold
+.param Vp=3.0                ; drive amplitude into 50 ohm (V)
+.param Ibias=8m              ; DC bias current, just BELOW threshold (Ith ~ 12 mA)
+.param Rdrv=50               ; driver source impedance
+.param Ls=0.5n               ; laser bond-wire inductance (limits edge speed, rings)
+.param Cj=0.3p               ; laser-diode junction capacitance
+.param Rs=5                  ; laser series resistance
+
+* --- DC bias current into the laser anode (node la) ------------------------
+Ibias 0 la DC 'Ibias'
+
+* --- fast driver: voltage pulse behind 50 ohm, AC-coupled through the bias-tee block
+Vdrv drv 0 PULSE(0 'Vp' '0.15*Trep' 'Tr' 'Tr' 'Wp' 'Trep')
+Rd   drv n1 'Rdrv'
+Ccpl n1 la 100p              ; DC block (bias-tee RF arm) — bias current is injected at `la`,
+*                             so the only DC path is through the laser branch (Vsense -> Dl).
+
+* --- laser-diode load: junction cap + series R + bond-wire L + forward junction
+Cjl  la 0 'Cj'
+Vsense la lda 0              ; 0 V ammeter: i(Vsense) = injection current into the laser
+Rsl  lda lk 'Rs'
+Lsl  lk  lk2 'Ls'
+Dl   lk2 0 DLASER
+.model DLASER D(IS=1e-12 N=2 RS=1 CJO=0.2p)
+
+.tran 1p 2.4n 0 1p
+.control
+  run
+  wrdata alice_driver.data i(Vsense) v(la) v(drv)
+.endc
+.end

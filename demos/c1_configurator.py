@@ -1,8 +1,9 @@
 """C1/C2/C3 demo: the multi-domain reference-design configurator.
 
-Prints the unified configuration report for all three domains (QKD link, atomic magnetometer,
-qubit processor) from one `configure(domain, knobs)` core, then shows the QKD detector
-trade-off (SKR vs distance + whole-link BOM cost split). The GUI (gui/) drives this same core.
+Prints the unified configuration report for all four domains (QKD link, atomic magnetometer,
+qubit processor, quantum RNG) from one `configure(domain, knobs)` core, then shows the QKD
+detector trade-off (SKR vs distance + whole-link BOM cost split). The GUI (gui/) drives this
+same core.
 
 Run:  python -m demos.c1_configurator
 """
@@ -28,6 +29,7 @@ def main() -> None:
         ("qkd", {"detector": "ingaas_sd", "distance_km": 25}),
         ("sensing", {"atom_number": 1e12, "T2_ms": 5, "tau_ms": 5}),
         ("qchw", {"n_qubits": 2, "T1_us": 50, "T2_us": 70, "t_gate_ns": 40}),
+        ("qrng", {"mu": 0.5, "eta_a": 0.30, "eta_b": 0.15}),
     ]:
         print(configure(dom, knobs).format())
         print()

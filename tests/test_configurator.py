@@ -9,13 +9,13 @@ from qsim.configurator import DeviceSpec, configure, domain_schema, list_domains
 
 
 # --- registry ------------------------------------------------------------
-def test_three_domains_registered():
+def test_four_domains_registered():
     names = {d["name"] for d in list_domains()}
-    assert {"qkd", "sensing", "qchw"} <= names
+    assert {"qkd", "sensing", "qchw", "qrng"} <= names
 
 
 def test_domain_schema_has_defaults_and_knobs():
-    for dom in ("qkd", "sensing", "qchw"):
+    for dom in ("qkd", "sensing", "qchw", "qrng"):
         s = domain_schema(dom)
         assert s["schema"] and s["defaults"]
         # every schema knob has a default
@@ -80,6 +80,36 @@ def test_qchw_bell_only_for_two_qubits():
 
 def test_qchw_t2_gt_2t1_infeasible():
     assert not configure("qchw", {"T1_us": 10, "T2_us": 30, "t_gate_ns": 40}).feasible
+
+
+# --- qrng domain ---------------------------------------------------------
+def test_qrng_matches_mc_plugin():
+    # the configurator's closed form == the Monte-Carlo qsim QRNG plugin (non-circular).
+    from qsim.qrng import run_qrng
+    kw = dict(mu=0.5, eta_a=0.30, eta_b=0.15, p_dark_a=1e-5, p_dark_b=1e-5)
+    r = configure("qrng", {**kw, "rep_rate": 1e8})
+    mc = run_qrng(n_ticks=80, pulses_per_tick=200_000, seed=1, rep_rate=1e8, **kw)
+    assert abs(r.m("bias") - mc["bias"]) < 5e-3
+    assert abs(r.m("min_entropy") - mc["min_entropy"]) < 5e-3
+    assert abs(r.m("sift_efficiency") - mc["sift_efficiency"]) < 5e-3
+
+
+def test_qrng_balanced_is_unbiased_full_entropy():
+    r = configure("qrng", {"eta_a": 0.20, "eta_b": 0.20, "p_dark_a": 1e-5, "p_dark_b": 1e-5})
+    assert r.m("bias") < 1e-9 and abs(r.m("min_entropy") - 1.0) < 1e-9
+    assert r.feasible and r.m("extractable_rate") > 0
+
+
+def test_qrng_mismatch_lowers_min_entropy():
+    bal = configure("qrng", {"eta_a": 0.20, "eta_b": 0.20})
+    mis = configure("qrng", {"eta_a": 0.40, "eta_b": 0.05})
+    assert mis.m("min_entropy") < bal.m("min_entropy")
+    assert mis.m("bias") > bal.m("bias")
+
+
+def test_qrng_severe_bias_infeasible():
+    # extreme efficiency asymmetry drives H_min below the 0.5 bit practical floor -> FAIL
+    assert not configure("qrng", {"eta_a": 0.9, "eta_b": 0.05, "mu": 1.5}).feasible
 
 
 # --- shipped QKD config files (DeviceSpec YAML -> qkd knobs) --------------

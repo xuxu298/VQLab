@@ -2,7 +2,7 @@
 
 A thin, **multi-domain** web front-end over the configurator core
 (`qsim.configurator.configure`). Pick a domain (QKD link / atomic magnetometer / qubit
-processor), then turn its knobs → the simulation, the BOM, the board parameters and the
+processor / quantum RNG), then turn its knobs → the simulation, the BOM, the board parameters and the
 design-rule checks update together. One generic UI renders any domain (the report shape is
 uniform). First step toward the drag-and-drop "virtual quantum bench"; the engine stays
 server-side (browser, no install, modest client hardware).

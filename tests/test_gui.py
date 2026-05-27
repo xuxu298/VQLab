@@ -12,11 +12,11 @@ def client():
 
 def test_domains_endpoint():
     names = {d["name"] for d in client().get("/api/domains").get_json()}
-    assert {"qkd", "sensing", "qchw"} <= names
+    assert {"qkd", "sensing", "qchw", "qrng"} <= names
 
 
 def test_schema_endpoint_per_domain():
-    for dom in ("qkd", "sensing", "qchw"):
+    for dom in ("qkd", "sensing", "qchw", "qrng"):
         s = client().get(f"/api/schema/{dom}").get_json()
         assert s["schema"] and s["defaults"]
 
@@ -27,7 +27,7 @@ def test_schema_unknown_domain_404():
 
 def test_configure_each_domain_with_defaults():
     c = client()
-    for dom in ("qkd", "sensing", "qchw"):
+    for dom in ("qkd", "sensing", "qchw", "qrng"):
         defaults = c.get(f"/api/schema/{dom}").get_json()["defaults"]
         r = c.post("/api/configure", json={"domain": dom, "knobs": defaults}).get_json()
         assert r["feasible"] is True

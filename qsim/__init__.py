@@ -11,7 +11,7 @@ benchmarking).
 See docs/02_simulator_kernel_spec.md for the architecture this implements.
 """
 
-__version__ = "0.0.5-M4"
+__version__ = "0.1.0"
 
 
 def load_scenario_plugins() -> list[str]:

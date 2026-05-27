@@ -13,6 +13,16 @@ hardware**. The kernel never imports a plugin.
 - Architecture & first reference design: [`docs/01_architecture_and_bom.md`](docs/01_architecture_and_bom.md)
 - Kernel specification: [`docs/02_simulator_kernel_spec.md`](docs/02_simulator_kernel_spec.md)
 
+## Try it in 1 minute
+
+```bash
+pip install -e ".[gui]"
+python -m qsim          # 4-domain self-check (≈1 s): headline physics + BOM + feasibility
+python -m qsim gui      # the web bench at http://127.0.0.1:8000 — turn the knobs live
+```
+
+See **[`QUICKSTART.md`](QUICKSTART.md)** for the guided tour (with screenshots, bilingual EN/VI).
+
 ## Status — M0 (multi-rate engine, validated)
 
 M0 attacks the #1 technical risk: does the **multi-rate engine** (slow drift/control ×

@@ -194,6 +194,41 @@ detector). Figure: `demos/figures/h1_designed_detector_skr.png`.
 
 ---
 
+## 6a. FPGA firmware — gate-veto + ghost-reject + timestamp (H2)
+
+The analog front-end (§3) delivers at most one LVDS comparator event per gate period; the FPGA
+turns that raw stream into clean, time-tagged single-photon detections. Synthesizable Verilog in
+`hardware/bob_fpga/bob_gating.v`, validated in **Verilator**:
+
+- **Ghost-reject.** Self-differencing leaves an inverted copy of each avalanche exactly one gate
+  period later (§3). The firmware always vetoes the gate immediately after an accepted click —
+  independent of the afterpulse setting (it is an SD artifact, not afterpulsing).
+- **Gate-veto (afterpulse hold-off).** After each accepted click the firmware holds off
+  `veto_cycles` gates. This length is **not free**: `veto_cycles = round(tau_dead · gate_rate)`,
+  the *same* dead time qsim's finite-key model uses — for `ingaas_sd` (3 ns dead time, 1.25 GHz)
+  that is **4 gates ≈ 3.2 ns**. Non-paralyzable: clicks inside the window do not extend it.
+- **Timestamp.** Each accepted photon is tagged with the running gate index and strobed out
+  (`event_valid` + `event_ts`) — the time-tag Bob sifts/aligns on; serialized back over LVDS.
+
+Two-tier validated like the rest of the project: (1) a self-checking Verilator testbench
+(`sim_main.cpp`, **26 checks / 0 fail**) pins the behaviour — single photon → one timestamp,
+ghost rejected, afterpulse window + exact re-arm timing, disarm freezes the counter, saturated
+throughput = 1/(veto+1), monotonic timestamps; (2) `validate_with_qsim.py` closes the
+**hardware↔sim loop** — it derives `veto_cycles` from the qsim detector's `tau_dead` and confirms
+the firmware-enforced dead time matches, and that the firmware's measured throttling follows the
+non-paralyzable dead-time law `m = r/(1 + r·veto)` to <0.3%. Same discipline as the ngspice loop
+in §4/§6. `tests/test_firmware.py` runs both (auto-skipped without Verilator).
+
+> **Giải thích — firmware FPGA:** mạch analog mỗi chu kỳ cổng đưa ra tối đa một sự kiện; FPGA làm
+> ba việc mạch không làm được: (1) **loại "bóng ma"** mà self-differencing sinh ra đúng 1 chu kỳ sau
+> mỗi photon; (2) **khóa cổng** `veto_cycles` nhịp sau mỗi click để chặn afterpulse — độ dài này lấy
+> đúng từ `tau_dead` của qsim (`= round(tau_dead·gate_rate)` = 4 nhịp ≈ 3,2 ns), không phải số tùy ý;
+> (3) **đóng dấu thời gian** mỗi photon (chỉ số cổng) để Bob sàng/đồng bộ với Alice. Kiểm chứng 2 tầng
+> như cả dự án: testbench Verilator (26 kiểm tra, 0 lỗi) + vòng lặp **phần cứng↔sim** khớp luật
+> thời-gian-chết với qsim (<0,3%). Đây là bước (4) trong §7 — đã xong.
+
+---
+
 ## 7. Risks & next steps
 
 **Risks:** (1) delay-line dispersion/loss limits real suppression below the ideal — mitigate with
@@ -203,8 +238,8 @@ must be handled in firmware. (3) SPAD C_j and V_BR spread part-to-part → per-u
 **Next steps:** (1) ✅ schematic captured + KiCad-importable netlist + BOM (§4a). (2) **PCB
 layout in KiCad** (import `bob_channel.net`; controlled-impedance 50 Ω stackup; the delay line as
 a length-tuned trace/coax) — a GUI step. (3) tighten SPAD device params against the chosen part's
-datasheet + bench measurement. (4) Write the **FPGA gate-veto + ghost-reject + LVDS timestamp**
-firmware (Verilog, sim in Verilator). (5) Then the Alice timing/laser-driver board.
+datasheet + bench measurement. (4) ✅ **FPGA gate-veto + ghost-reject + LVDS timestamp** firmware
+written & Verilator-validated (§6a, `hardware/bob_fpga/`). (5) Then the Alice timing/laser-driver board.
 
 > **Giải thích — rủi ro & việc tiếp:** rủi ro chính: dây trễ thực có tổn hao/tán sắc làm khử kém hơn
 > lý tưởng (khắc phục bằng tinh chỉnh từng hài). Việc tiếp: siết thông số SPAD theo datasheet thật →

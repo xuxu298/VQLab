@@ -10,3 +10,6 @@ dist/
 
 # ngspice generated dumps
 hardware/**/*.data
+
+# Verilator build artifacts
+hardware/**/obj_dir/

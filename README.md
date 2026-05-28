@@ -2,6 +2,12 @@
   <img src="docs/brand/vqlab_lockup.svg" alt="VQLab — open-source virtual quantum bench" width="360"/>
 </p>
 
+<p align="center">
+  <a href="https://github.com/xuxu298/VQLab/actions/workflows/test.yml"><img src="https://github.com/xuxu298/VQLab/actions/workflows/test.yml/badge.svg" alt="tests"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"/></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"/></a>
+</p>
+
 # VQLab — open-source virtual quantum bench
 
 > **Code → simulation → schematic → PCB → GUI**, all in one tool.

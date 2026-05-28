@@ -29,3 +29,10 @@ include = ["qsim*"]
 
 [tool.setuptools.package-data]
 qsim = ["profiles/*.yaml"]
+
+[tool.pytest.ini_options]
+# Tests under tests/ import sibling source dirs (hardware/, gui/) that are not
+# installed as packages — add the repo root to sys.path so plain `pytest -q`
+# works the same as `python -m pytest -q`.
+pythonpath = ["."]
+

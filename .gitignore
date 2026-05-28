@@ -21,3 +21,12 @@ hardware/**/layout/
 # Kept locally only; not part of the open-source VQLab product surface.
 presentations/
 sales/
+
+# Project-level strategy reference docs for V-family products (proprietary side).
+# These are user's switch-context notes — must NEVER be pushed to public VQLab repo.
+VBrainQ.md
+VQLab-strategy.md
+VPQ.md
+VRadar.md
+V*.strategy.md
+*-private.md

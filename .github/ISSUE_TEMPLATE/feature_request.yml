@@ -1,0 +1,49 @@
+name: Feature request
+description: A new device, validation target, or capability you'd like VQLab to cover
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        VQLab is a reference + teaching tool. Feature requests most likely to land:
+        new validation targets (published figures we can reproduce), new domain plugins,
+        teaching material, configurator entries. See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the underlying need?
+      description: What are you trying to do that VQLab doesn't yet let you do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: A rough idea of how this could fit. Concrete is better than abstract.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: Published reference (if applicable)
+      description: Paper / spec / dataset we could validate against. VQLab does not ship unvalidated numbers.
+      placeholder: "e.g. Rusca et al. 2018 (arXiv:1801.03443) — finite-key SKR figure"
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Roughly which area?
+      options:
+        - "QKD (qsim/qkd/)"
+        - "Atomic sensing (qsim/sensing/)"
+        - "QC hardware (qsim/qchw/)"
+        - "QRNG (qsim/qrng/)"
+        - "Configurator / GUI"
+        - "Hardware reference designs (hardware/)"
+        - "Docs / tutorials"
+        - "Other"
+    validations:
+      required: true

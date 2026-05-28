@@ -13,6 +13,7 @@ dependencies = [
     "scipy>=1.9",
     "matplotlib>=3.6",
     "pyyaml>=6.0",
+    "pytest>=7",                   # the validation suite is part of the credibility story
 ]
 
 [project.optional-dependencies]
@@ -21,7 +22,7 @@ gui = ["flask>=2.2"]               # the virtual-bench web GUI (gui/)
 # numpy dense-rho engine (exact for the 1-2 qubit / spin regimes). QuTiP/sparse is the
 # documented swap-in for large-n qc-hardware only.
 quantum = ["qutip>=4.7"]
-dev = ["pytest>=7", "playwright>=1.40"]
+dev = ["playwright>=1.40"]         # only for the GUI screenshot tool (gui/screenshot.py)
 
 [tool.setuptools.packages.find]
 include = ["qsim*"]

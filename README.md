@@ -325,3 +325,13 @@ hardware-data match for a production-grade key-rate claim.
 Next for M1 to reach a *production*-grade claim: match a hardware experiment with measured
 detector data (vs the current published-simulation match), and fold dead-time into the
 finite-key rate rather than as a post-hoc cap.
+
+## Contributing
+
+VQLab is a **reference + teaching tool**, deliberately not a production product — see
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for the kinds of contributions that are most useful
+(new validation targets, teaching material, additional domain plugins) and what's out of
+scope (vendor-specific RF trim, production-firmware hardening, certification artifacts).
+
+Bug reports, feature requests, and teaching-use inquiries: open a [GitHub issue](https://github.com/xuxu298/VQLab/issues/new/choose).
+Private inquiries: support@vradar.io.

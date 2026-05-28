@@ -1,0 +1,39 @@
+name: Teaching / lab use inquiry
+description: You teach or run a quantum lab and want to use VQLab — let us help
+labels: ["teaching", "outreach"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We'd genuinely like to know who's teaching with VQLab. If your course / lab
+        could benefit from feedback into the project (missing pieces, integration with
+        a curriculum, custom scenarios), open this so we can chat in the open — others
+        usually want the same things.
+
+  - type: input
+    id: institution
+    attributes:
+      label: Institution / lab
+      placeholder: "e.g. HUST / VNU-HUS / USTH / a research group"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: How do you intend to use VQLab?
+      description: A course module? An undergrad project? A research demo? A teaching lab?
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-would-help
+    attributes:
+      label: What would help most?
+      description: Missing tutorials? A specific scenario? Translation to Vietnamese / Mandarin / other? A node-editor GUI? Specific hardware reference?
+
+  - type: input
+    id: contact
+    attributes:
+      label: How to reach you (optional)
+      description: Email, ORCID, or just "via this issue thread".

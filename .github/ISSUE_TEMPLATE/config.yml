@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Email VQLab maintainers
+    url: mailto:support@vradar.io
+    about: For private inquiries (partnerships, sensitive reports, etc.). For anything that benefits the community, please open a public issue instead.

@@ -24,9 +24,12 @@ sales/
 
 # Project-level strategy reference docs for V-family products (proprietary side).
 # These are user's switch-context notes — must NEVER be pushed to public VQLab repo.
-VBrainQ.md
-VQLab-strategy.md
-VPQ.md
-VRadar.md
-V*.strategy.md
+# Even VQLab.md (the strategy doc) stays private — README.md is the public face.
+/VBrainQ.md
+/VQLab.md
+/VQ-Link.md
+/VPQ.md
+/VPQ-Audit.md
+/VRadar.md
+*.strategy.md
 *-private.md

@@ -1,10 +1,17 @@
-# qsim — open-source quantum-device simulation platform
+<p align="center">
+  <img src="docs/brand/vqlab_lockup.svg" alt="VQLab — open-source virtual quantum bench" width="360"/>
+</p>
 
-A device-level, physically-realistic, **multi-rate** simulation platform — a *virtual
-quantum bench* — for quantum-technology R&D. Mission: let low-budget researchers and
-students (especially in developing countries) do the hard "tuning" work (custom boards,
-control loops, calibration, stability, side-channels) **virtually**, where commercial
-photonic-EDA tools are expensive and closed.
+# VQLab — open-source virtual quantum bench
+
+> **Code → simulation → schematic → PCB → GUI**, all in one tool.
+> Powered by the [`qsim`](qsim/) Python kernel. Licensed MIT.
+
+VQLab is a device-level, physically-realistic, **multi-rate** simulation platform — a
+*virtual quantum bench* — for quantum-technology R&D. Mission: let low-budget
+researchers and students (especially in developing countries) do the hard "tuning" work
+(custom boards, control loops, calibration, stability, side-channels) **virtually**,
+where commercial photonic-EDA tools are expensive and closed.
 
 Architecture: a **domain-agnostic kernel** (`qsim.core`) + **per-domain plugins**.
 Validation domains, in order: **(1) QKD → (2) quantum sensing → (3) quantum-computing

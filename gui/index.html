@@ -1,143 +1,317 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>qsim · virtual quantum bench</title>
+<title>VQLab · Bàn lượng tử ảo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <style>
-  :root { --bg:#0f1720; --panel:#16212e; --ink:#e8eef4; --mut:#9fb0c0; --line:#2a3a4d;
-          --accent:#2f9e9e; --ok:#27ae60; --warn:#e67e22; --fail:#c0392b; --info:#2980b9; }
-  * { box-sizing:border-box; }
-  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
-  header { padding:14px 22px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
-  header h1 { font-size:18px; margin:0; }
-  header span { color:var(--mut); font-size:12px; }
-  header select { margin-left:auto; background:#0e1722; color:var(--ink); border:1px solid var(--accent);
-                  border-radius:6px; padding:6px 10px; font-size:14px; }
-  .wrap { display:grid; grid-template-columns:330px 1fr; gap:18px; padding:18px 22px; }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:0 0 12px; }
-  label { display:block; margin:10px 0 4px; color:var(--mut); font-size:12px; }
-  select, input[type=number] { width:100%; background:#0e1722; color:var(--ink);
-       border:1px solid var(--line); border-radius:6px; padding:7px 8px; }
-  input[type=range] { width:100%; }
-  .rngval { float:right; color:var(--accent); font-variant-numeric:tabular-nums; }
-  .badge { display:inline-block; padding:5px 12px; border-radius:999px; font-weight:600; font-size:13px; }
-  .badge.ok { background:rgba(39,174,96,.18); color:#5fe0a0; border:1px solid #27ae60; }
-  .badge.fail { background:rgba(192,57,43,.18); color:#ff8b7e; border:1px solid #c0392b; }
-  .metrics { display:flex; gap:12px; margin:14px 0; flex-wrap:wrap; }
-  .metric { flex:1; min-width:130px; background:#0e1722; border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
-  .metric .v { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; }
-  .metric .k { color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
-  img#fig { width:100%; border-radius:8px; background:#fff; margin-top:8px; }
-  .rule { padding:5px 10px; border-radius:6px; margin:4px 0; font-size:13px; }
-  .rule.FAIL { background:rgba(192,57,43,.16); border-left:3px solid var(--fail); }
-  .rule.WARN { background:rgba(230,126,34,.14); border-left:3px solid var(--warn); }
-  .rule.INFO { background:rgba(41,128,185,.14); border-left:3px solid var(--info); }
-  .rule.PASS { background:rgba(39,174,96,.14); border-left:3px solid var(--ok); }
-  table { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:6px; }
-  th,td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
-  td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .side { color:var(--accent); font-weight:600; padding-top:10px; }
-  .sub td { color:var(--mut); }
-  #busy { color:var(--accent); font-size:12px; min-height:16px; }
+  :root{
+    --bg:#070b14; --bg2:#0b1120; --panel:#0f1830; --panel2:#0c1426;
+    --line:#1d2b46; --line2:#16243c; --ink:#eaf1fb; --mut:#8194b3; --dim:#5b6c8a;
+    --c1:#22d3ee; --c2:#a855f7; --accent:#3ddbe6;
+    --ok:#34d399; --warn:#fbbf24; --fail:#fb7185; --info:#60a5fa;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Inter',system-ui,sans-serif; color:var(--ink);
+    background:
+      radial-gradient(1100px 620px at 82% -8%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(1000px 600px at 4% 108%, rgba(168,85,247,.12), transparent 60%),
+      linear-gradient(180deg,#070b14,#080d18);
+    background-attachment:fixed;
+  }
+  body::before{ /* faint engineering grid */
+    content:''; position:fixed; inset:0; pointer-events:none; opacity:.5;
+    background-image:linear-gradient(rgba(120,160,220,.035) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(120,160,220,.035) 1px,transparent 1px);
+    background-size:46px 46px; mask-image:radial-gradient(circle at 50% 40%,#000 30%,transparent 85%);
+  }
+  .app{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column;}
+
+  /* ---------- top bar ---------- */
+  .topbar{display:flex; align-items:center; gap:18px; padding:16px 28px; border-bottom:1px solid var(--line2);
+          background:linear-gradient(180deg,rgba(14,22,41,.7),rgba(8,13,24,.2)); backdrop-filter:blur(6px);}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .logo{width:44px; height:44px; display:block; filter:drop-shadow(0 0 13px rgba(34,211,238,.38));}
+  .logo svg{width:100%; height:100%; display:block;}
+  .brandtext{font-family:'Plus Jakarta Sans'; font-weight:800; font-size:22px; letter-spacing:-.5px; line-height:1;}
+  .brandtext .wm b{font-weight:800; background:linear-gradient(135deg,var(--c1),var(--c2));
+        -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .brandtext .sub{display:block; font-family:'Inter'; font-weight:600; font-size:12.5px; color:var(--accent); letter-spacing:.5px; margin-top:4px;}
+  .tagline{color:var(--mut); font-size:13.5px; font-weight:500; max-width:430px; line-height:1.4;
+           border-left:1px solid var(--line); padding-left:18px;}
+  .domains{margin-left:auto; display:flex; gap:8px; background:var(--panel2); padding:6px; border-radius:13px; border:1px solid var(--line);}
+  .domtab{padding:9px 15px; border-radius:9px; font-size:13.5px; font-weight:700; color:var(--mut); cursor:pointer;
+          border:1px solid transparent; white-space:nowrap; transition:all .18s;}
+  .domtab:hover{color:var(--ink);}
+  .domtab.active{color:#04121a; background:linear-gradient(135deg,var(--c1),var(--c2));
+                 box-shadow:0 0 18px rgba(34,211,238,.4); border-color:transparent;}
+
+  /* ---------- console grid ---------- */
+  .console{flex:1; display:grid; grid-template-columns:316px 1fr 348px; gap:18px; padding:18px 28px 26px; align-items:start;}
+  .rail,.stage>.chartcard,.stage>.rules{background:linear-gradient(180deg,var(--panel),var(--panel2));
+        border:1px solid var(--line); border-radius:16px;}
+  .rail{padding:18px; position:sticky; top:18px;}
+  h3{font-family:'Plus Jakarta Sans'; font-size:12px; text-transform:uppercase; letter-spacing:.16em;
+     color:var(--dim); margin:0 0 14px; font-weight:800;}
+
+  /* status light */
+  .status{display:flex; align-items:center; gap:12px; padding:13px 15px; border-radius:12px; margin-bottom:18px;
+          border:1px solid var(--line); background:var(--panel2);}
+  .light{width:14px; height:14px; border-radius:50%; flex-shrink:0;}
+  .status.ok .light{background:var(--ok); box-shadow:0 0 14px var(--ok),0 0 4px #fff inset;}
+  .status.fail .light{background:var(--fail); box-shadow:0 0 14px var(--fail);}
+  .status .st{font-family:'Plus Jakarta Sans'; font-weight:800; font-size:15px; letter-spacing:.3px;}
+  .status.ok .st{color:var(--ok);} .status.fail .st{color:var(--fail);}
+  .status .sl{margin-left:auto; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.1em;}
+
+  /* knobs */
+  .knob{margin-bottom:17px;}
+  .knob .top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;}
+  .knob label{color:var(--mut); font-size:12.5px; font-weight:600;}
+  .knob .val{font-family:'JetBrains Mono'; font-weight:700; font-size:13px; color:var(--accent);}
+  select,input[type=number]{width:100%; background:var(--bg2); color:var(--ink); border:1px solid var(--line);
+       border-radius:9px; padding:9px 11px; font-size:13.5px; font-family:'Inter'; outline:none; transition:border .15s;}
+  select:focus,input[type=number]:focus{border-color:var(--accent);}
+  input[type=range]{-webkit-appearance:none; width:100%; height:6px; border-radius:6px; outline:none;
+       background:var(--line); margin:6px 0 2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+       background:linear-gradient(135deg,var(--c1),var(--c2)); cursor:pointer; box-shadow:0 0 10px rgba(34,211,238,.6); border:2px solid #06101e;}
+  input[type=range]::-moz-range-thumb{width:18px; height:18px; border:2px solid #06101e; border-radius:50%;
+       background:var(--c1); cursor:pointer;}
+
+  /* ---------- stage (center) ---------- */
+  .stage{display:flex; flex-direction:column; gap:18px;}
+  .metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+  .metric{background:linear-gradient(180deg,var(--panel),var(--panel2)); border:1px solid var(--line);
+          border-radius:14px; padding:16px 17px; position:relative; overflow:hidden;}
+  .metric::before{content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+          background:linear-gradient(180deg,var(--c1),var(--c2));}
+  .metric .k{color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.07em; font-weight:600;}
+  .metric .v{font-family:'JetBrains Mono'; font-weight:700; font-size:26px; margin-top:8px; line-height:1.05;
+          letter-spacing:-.5px; transition:transform .25s, color .25s;}
+  .metric.feat .v{background:linear-gradient(135deg,#9af2ff,#d7a8ff); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .metric.pop .v{transform:scale(1.12);}
+  .chartcard{padding:16px 18px 8px;}
+  .chart-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;}
+  .chart-head .ttl{font-family:'Plus Jakarta Sans'; font-weight:800; font-size:15px;}
+  .chart-head .hint{font-size:12px; color:var(--accent); font-weight:600;}
+  #chart{width:100%; height:300px;}
+  .rules{padding:15px 18px;}
+  .rulewrap{display:flex; flex-wrap:wrap; gap:8px;}
+  .rule{padding:7px 12px; border-radius:9px; font-size:12.5px; line-height:1.35; border:1px solid transparent;}
+  .rule b{font-family:'JetBrains Mono'; font-size:10.5px; letter-spacing:.05em; margin-right:6px;}
+  .rule.FAIL{background:rgba(251,113,133,.12); border-color:rgba(251,113,133,.4); color:#ffc4cd;}
+  .rule.WARN{background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.34); color:#ffe6a8;}
+  .rule.INFO{background:rgba(96,165,250,.10); border-color:rgba(96,165,250,.3); color:#cfe0ff;}
+  .rule.PASS{background:rgba(52,211,153,.10); border-color:rgba(52,211,153,.34); color:#b6f3da;}
+
+  /* ---------- BOM rail ---------- */
+  .donutwrap{position:relative; height:184px; margin-bottom:6px;}
+  #bomdonut{width:100%; height:184px;}
+  .bomtotal{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;}
+  .bomtotal .bt-v{font-family:'JetBrains Mono'; font-weight:700; font-size:25px;
+          background:linear-gradient(135deg,#9af2ff,#d7a8ff); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .bomtotal .bt-l{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.1em; margin-top:2px;}
+  .bomlist{margin-top:8px; max-height:330px; overflow:auto;}
+  .bomlist table{width:100%; border-collapse:collapse; font-size:12px;}
+  .bomlist td{padding:5px 6px; border-bottom:1px solid var(--line2); vertical-align:top;}
+  .bomlist td.num{text-align:right; font-family:'JetBrains Mono'; color:var(--mut); white-space:nowrap;}
+  .bomlist .side td{color:var(--accent); font-weight:700; padding-top:11px; text-transform:uppercase; font-size:10.5px; letter-spacing:.08em; border-bottom:none;}
+  .bomlist .ref{color:var(--mut); font-family:'JetBrains Mono'; font-size:11px;}
+  .bomlist .sub td{color:var(--dim); font-style:italic;}
+  .bomlist::-webkit-scrollbar{width:7px;} .bomlist::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
+
+  .busy{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); font-size:12px; color:#04121a;
+        background:linear-gradient(135deg,var(--c1),var(--c2)); padding:6px 16px; border-radius:999px; font-weight:700;
+        opacity:0; transition:opacity .2s; box-shadow:0 4px 22px rgba(34,211,238,.4);}
+  .busy.on{opacity:1;}
+  @media (max-width:1380px){ .console{grid-template-columns:300px 1fr;} .bom{grid-column:1 / -1;} .metrics{grid-template-columns:repeat(4,1fr);} }
 </style>
 </head>
 <body>
-<header>
-  <h1>qsim · virtual quantum bench</h1>
-  <span>configure a quantum device — turn knobs, the simulation &amp; BOM update together</span>
-  <select id="domain"></select>
-</header>
-<div class="wrap">
-  <div class="panel">
-    <h2>Device knobs</h2>
-    <div id="knobs"></div>
-    <div id="busy" style="margin-top:12px"></div>
-  </div>
-  <div class="panel">
-    <h2>Configured device <span id="dlabel" style="color:var(--ink)"></span></h2>
-    <div id="badge"></div>
-    <div class="metrics" id="metrics"></div>
-    <img id="fig" alt="domain figure"/>
-    <h2 style="margin-top:18px">Design rules</h2>
-    <div id="rules"></div>
-    <h2 style="margin-top:18px">Bill of materials</h2>
-    <table id="bom"><tbody></tbody></table>
-  </div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="VQLab">
+        <defs>
+          <linearGradient id="vqlabGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#a855f7"/></linearGradient>
+          <radialGradient id="vqlabTile" cx="30%" cy="22%" r="95%"><stop offset="0" stop-color="#13203a"/><stop offset="1" stop-color="#0a1020"/></radialGradient>
+          <filter id="vqlabGlow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="url(#vqlabTile)" stroke="url(#vqlabGrad)" stroke-width="1.4" stroke-opacity="0.65"/>
+        <g fill="none" stroke="url(#vqlabGrad)" stroke-width="6.4" stroke-linecap="round" filter="url(#vqlabGlow)"><path d="M17 17 L32 46"/><path d="M47 17 L32 46"/></g>
+        <circle cx="17" cy="17" r="3.1" fill="#34dcea"/><circle cx="47" cy="17" r="3.1" fill="#b06cf2"/>
+        <circle cx="32" cy="46" r="5.3" fill="url(#vqlabGrad)" filter="url(#vqlabGlow)"/><circle cx="32" cy="46" r="2.1" fill="#ecffff"/>
+      </svg></div>
+      <div class="brandtext"><span class="wm"><b>VQ</b>Lab</span><span class="sub">Bàn lượng tử ảo</span></div>
+    </div>
+    <div class="tagline">Nghiên cứu &amp; dạy-học lượng tử <b>trực quan</b> — ngay trên trình duyệt, không cần phòng lab vật lý. Vặn một knob, vật lý &amp; thiết kế cập nhật tức thì.</div>
+    <nav class="domains" id="domains"></nav>
+  </header>
+
+  <main class="console">
+    <section class="rail controls">
+      <div class="status ok" id="status"><span class="light"></span><span class="st">—</span><span class="sl">trạng thái</span></div>
+      <h3>Bảng điều khiển <span id="dlabel" style="color:var(--accent)"></span></h3>
+      <div id="knobs"></div>
+    </section>
+
+    <section class="stage">
+      <div class="metrics" id="metrics"></div>
+      <div class="chartcard">
+        <div class="chart-head"><span class="ttl" id="chartTitle">—</span><span class="hint">Kéo một knob → đồ thị cập nhật trực tiếp</span></div>
+        <div id="chart"></div>
+      </div>
+      <div class="rules">
+        <h3>Quy tắc thiết kế</h3>
+        <div class="rulewrap" id="rules"></div>
+      </div>
+    </section>
+
+    <aside class="rail bom">
+      <h3>Vật tư &amp; chi phí (BOM)</h3>
+      <div class="donutwrap"><div id="bomdonut"></div><div class="bomtotal" id="bomtotal"></div></div>
+      <div class="bomlist" id="bomlist"></div>
+    </aside>
+  </main>
 </div>
+<div class="busy" id="busy">đang tính…</div>
 
 <script>
 const $ = id => document.getElementById(id);
-let schema = [], defaults = {}, timer = null;
+const DOM_VN = {qkd:"QKD · Truyền khóa", qrng:"QRNG · Số ngẫu nhiên", sensing:"Cảm biến nguyên tử", qchw:"Máy tính lượng tử"};
+const PALETTE = ['#22d3ee','#a855f7','#34d399','#fbbf24','#60a5fa','#fb7185'];
+let schema=[], defaults={}, timer=null, curDomain=null, prevVals={};
+let chart, bomChart, lastChartDom=null, lastBomDom=null;
 
-function coerce(v){ const n = Number(v);
-  return (v!=="" && !isNaN(n) && /^[0-9.eE+-]+$/.test(String(v))) ? n : v; }
+function fmtUSD(n){ return n>=1000 ? '$'+(n/1000).toFixed(n>=1e5?0:1)+'k' : '$'+n.toFixed(0); }
+function coerce(v){ const n=Number(v); return (v!=="" && !isNaN(n) && /^[0-9.eE+-]+$/.test(String(v))) ? n : v; }
+
+function axisStyle(){ return {
+  axisLine:{lineStyle:{color:'#2a3a58'}}, axisLabel:{color:'#8194b3', fontSize:11, fontFamily:'JetBrains Mono'},
+  splitLine:{lineStyle:{color:'rgba(120,160,220,.07)'}}, nameTextStyle:{color:'#8194b3', fontSize:11} }; }
 
 async function init(){
+  chart = echarts.init($("chart"), null, {renderer:'canvas'});
+  bomChart = echarts.init($("bomdonut"), null, {renderer:'canvas'});
+  window.addEventListener('resize', ()=>{chart.resize(); bomChart.resize();});
   const doms = await (await fetch("/api/domains")).json();
-  $("domain").innerHTML = doms.map(d=>`<option value="${d.name}">${d.label}</option>`).join("");
-  $("domain").addEventListener("change", loadDomain);
-  await loadDomain();
+  $("domains").innerHTML = doms.map(d=>
+     `<div class="domtab" data-d="${d.name}">${DOM_VN[d.name]||d.label}</div>`).join("");
+  document.querySelectorAll(".domtab").forEach(t=>t.addEventListener("click",()=>selectDomain(t.dataset.d)));
+  await selectDomain(doms[0].name);
 }
 
-async function loadDomain(){
-  const dom = $("domain").value;
+async function selectDomain(dom){
+  curDomain = dom;
+  document.querySelectorAll(".domtab").forEach(t=>t.classList.toggle("active", t.dataset.d===dom));
   const s = await (await fetch("/api/schema/"+dom)).json();
-  schema = s.schema; defaults = s.defaults; $("dlabel").textContent = "· "+s.label;
-  $("knobs").innerHTML = schema.map(k=>knobHtml(k)).join("");
-  schema.forEach(k=>{
-    const el = $("k_"+k.key); el.addEventListener("input", onChange);
-    if(k.type==="range") syncLabel(k);
-  });
+  schema=s.schema; defaults=s.defaults; prevVals={};
+  $("dlabel").textContent = "· "+(DOM_VN[dom]||s.label);
+  $("knobs").innerHTML = schema.map(knobHtml).join("");
+  schema.forEach(k=>{ const el=$("k_"+k.key); el.addEventListener("input",onChange); if(k.type==="range") syncLabel(k); });
   run();
 }
 
 function knobHtml(k){
   const d = defaults[k.key];
-  const u = k.unit ? ` <span class="rngval" id="v_${k.key}"></span>` : "";
   if(k.type==="select"){
-    const opts = k.options.map(o=>`<option value="${o.key}" ${o.key==d?"selected":""}>${o.label}</option>`).join("");
-    return `<label>${k.label}</label><select id="k_${k.key}">${opts}</select>`;
+    const opts=k.options.map(o=>`<option value="${o.key}" ${o.key==d?"selected":""}>${o.label}</option>`).join("");
+    return `<div class="knob"><div class="top"><label>${k.label}</label></div><select id="k_${k.key}">${opts}</select></div>`;
   }
   if(k.type==="range")
-    return `<label>${k.label}${u}</label><input type="range" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/>`;
-  return `<label>${k.label}</label><input type="number" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/>`;
+    return `<div class="knob"><div class="top"><label>${k.label}</label><span class="val" id="v_${k.key}"></span></div>
+            <input type="range" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/></div>`;
+  return `<div class="knob"><div class="top"><label>${k.label}</label></div>
+          <input type="number" id="k_${k.key}" min="${k.min}" max="${k.max}" step="${k.step}" value="${d}"/></div>`;
 }
-
-function syncLabel(k){ const el=$("v_"+k.key); if(el) el.textContent = (+$("k_"+k.key).value)+ (k.unit?(" "+k.unit):""); }
-function onChange(e){ schema.forEach(k=>{ if(k.type==="range") syncLabel(k); });
-  clearTimeout(timer); timer=setTimeout(run, 220); }
-
-function collect(){ const knobs={}; schema.forEach(k=>{ knobs[k.key]=coerce($("k_"+k.key).value); }); return knobs; }
+function syncLabel(k){ const el=$("v_"+k.key); if(el) el.textContent=(+$("k_"+k.key).value)+(k.unit?(" "+k.unit):""); }
+function onChange(){ schema.forEach(k=>{ if(k.type==="range") syncLabel(k); }); clearTimeout(timer); timer=setTimeout(run,200); }
+function collect(){ const o={}; schema.forEach(k=>o[k.key]=coerce($("k_"+k.key).value)); return o; }
 
 async function run(){
-  $("busy").textContent="computing…";
-  const r = await (await fetch("/api/configure",{method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({domain:$("domain").value, knobs:collect()})})).json();
-  $("busy").textContent="";
-  if(r.error){ $("badge").innerHTML=`<span class="badge fail">ERROR: ${r.error}</span>`; return; }
+  $("busy").classList.add("on");
+  let r;
+  try{ r = await (await fetch("/api/configure",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({domain:curDomain, knobs:collect()})})).json(); }
+  catch(e){ $("busy").classList.remove("on"); return; }
+  $("busy").classList.remove("on");
+  if(r.error){ setStatus(false,"LỖI THAM SỐ"); return; }
   render(r);
 }
 
+function setStatus(ok,txt){
+  const s=$("status"); s.className="status "+(ok?"ok":"fail");
+  s.querySelector(".st").textContent = txt || (ok?"KHẢ THI":"KHÔNG KHẢ THI");
+}
+
 function render(r){
-  $("badge").innerHTML = r.feasible
-    ? '<span class="badge ok">✓ FEASIBLE</span>' : '<span class="badge fail">✗ NOT FEASIBLE</span>';
+  setStatus(r.feasible);
+  const feat = new Set(r.headline_keys && r.headline_keys.length ? r.headline_keys : r.metrics.slice(0,4).map(m=>m.key));
   $("metrics").innerHTML = r.metrics.map(m=>
-    `<div class="metric"><div class="v">${m.display}</div><div class="k">${m.label}</div></div>`).join("");
-  $("fig").src = "data:image/png;base64,"+r.figure_b64;
-  $("rules").innerHTML = r.rules.map(x=>`<div class="rule ${x.level}"><b>${x.level}</b> · ${x.msg}</div>`).join("");
+    `<div class="metric ${feat.has(m.key)?'feat':''}" id="m_${m.key}"><div class="k">${m.label}</div><div class="v">${m.display}</div></div>`).join("");
+  // pop metrics whose value changed
+  r.metrics.forEach(m=>{ if(prevVals[m.key]!==undefined && prevVals[m.key]!==m.value){
+      const el=$("m_"+m.key); if(el){ el.classList.add("pop"); setTimeout(()=>el.classList.remove("pop"),260);} }
+      prevVals[m.key]=m.value; });
+
+  renderChart(r.sweep);
+  $("rules").innerHTML = r.rules.map(x=>`<div class="rule ${x.level}"><b>${x.level}</b>${x.msg}</div>`).join("");
+  renderBom(r);
+}
+
+function renderChart(s){
+  if(!s){ return; }
+  $("chartTitle").textContent = `${s.metric_label} vs ${s.label}`;
+  const pairs = s.x.map((x,i)=>[x, s.y[i]]);
+  const lineGrad = new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#22d3ee'},{offset:1,color:'#a855f7'}]);
+  const areaGrad = new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(94,210,240,.30)'},{offset:1,color:'rgba(168,85,247,.02)'}]);
+  chart.setOption({
+    backgroundColor:'transparent',
+    grid:{left:64,right:22,top:16,bottom:50},
+    tooltip:{trigger:'axis', backgroundColor:'#0c1426', borderColor:'#1d2b46', textStyle:{color:'#eaf1fb',fontSize:12},
+             valueFormatter:v=> v==null?'—':(+v).toPrecision(3)},
+    xAxis:Object.assign({type:'value', name:s.label, nameLocation:'middle', nameGap:30, scale:true}, axisStyle()),
+    yAxis:Object.assign({type:s.logy?'log':'value', name:s.metric_label, nameLocation:'middle', nameGap:46}, axisStyle()),
+    series:[
+      {type:'line', data:pairs, smooth:true, showSymbol:false, connectNulls:false,
+       lineStyle:{width:3.2,color:lineGrad,shadowBlur:12,shadowColor:'rgba(34,211,238,.4)'}, areaStyle:{color:areaGrad}},
+      {type:'scatter', data: s.current_y!=null?[[s.current_x,s.current_y]]:[], symbolSize:17, z:6,
+       itemStyle:{color:'#ffffff', borderColor:'#22d3ee', borderWidth:3, shadowBlur:22, shadowColor:'#22d3ee'}}
+    ],
+    animationDuration:420, animationEasing:'cubicOut'
+  }, curDomain !== lastChartDom);   // full reset only on domain switch -> smooth same-domain updates
+  lastChartDom = curDomain;
+}
+
+function renderBom(r){
+  const sides = Object.keys(r.cost_by_side);
+  const data = sides.map((side,i)=>({name:side, value:Math.round(r.cost_by_side[side]),
+     itemStyle:{color:PALETTE[i%PALETTE.length]}}));
+  bomChart.setOption({
+    backgroundColor:'transparent',
+    tooltip:{trigger:'item', backgroundColor:'#0c1426', borderColor:'#1d2b46', textStyle:{color:'#eaf1fb'},
+             formatter:p=>`${p.name}: ${fmtUSD(p.value)} (${p.percent}%)`},
+    series:[{type:'pie', radius:['62%','86%'], center:['50%','50%'], avoidLabelOverlap:false,
+      label:{show:false}, labelLine:{show:false}, data, itemStyle:{borderColor:'#0b1120', borderWidth:3}}]
+  }, curDomain !== lastBomDom);
+  lastBomDom = curDomain;
+  $("bomtotal").innerHTML = `<div class="bt-v">${fmtUSD(r.bom_total_usd)}</div><div class="bt-l">Tổng BOM</div>`;
+  // itemised list grouped by side
   let rows="";
-  for(const side of Object.keys(r.cost_by_side)){
-    const items = r.bom.filter(i=>i.side===side); if(!items.length) continue;
-    rows += `<tr><td class="side" colspan="3">${side}</td></tr>`;
+  for(const side of sides){
+    const items=r.bom.filter(i=>i.side===side); if(!items.length) continue;
+    rows += `<tr class="side"><td colspan="2">${side}</td></tr>`;
     for(const it of items)
-      rows += `<tr><td>${it.ref} ×${it.qty}</td><td>${it.part}</td><td class="num">$${it.line_cost_usd.toLocaleString()}</td></tr>`;
-    rows += `<tr class="sub"><td></td><td>${side} subtotal</td><td class="num">$${r.cost_by_side[side].toLocaleString()}</td></tr>`;
+      rows += `<tr><td><span class="ref">${it.ref}×${it.qty}</span> ${it.part}</td><td class="num">${fmtUSD(it.line_cost_usd)}</td></tr>`;
+    rows += `<tr class="sub"><td>${side} subtotal</td><td class="num">${fmtUSD(r.cost_by_side[side])}</td></tr>`;
   }
-  rows += `<tr><td></td><td><b>TOTAL</b></td><td class="num"><b>$${r.bom_total_usd.toLocaleString()}</b></td></tr>`;
-  $("bom").querySelector("tbody").innerHTML = rows;
+  $("bomlist").innerHTML = `<table>${rows}</table>`;
 }
 init();
 </script>

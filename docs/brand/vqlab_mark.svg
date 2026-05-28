@@ -1,0 +1,30 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VQLab">
+  <defs>
+    <linearGradient id="vqlabGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#a855f7"/>
+    </linearGradient>
+    <radialGradient id="vqlabTile" cx="30%" cy="22%" r="95%">
+      <stop offset="0" stop-color="#13203a"/>
+      <stop offset="1" stop-color="#0a1020"/>
+    </radialGradient>
+    <filter id="vqlabGlow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- tile -->
+  <rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="url(#vqlabTile)"
+        stroke="url(#vqlabGrad)" stroke-width="1.4" stroke-opacity="0.65"/>
+  <!-- two beam paths (the V = an interferometer) -->
+  <g fill="none" stroke="url(#vqlabGrad)" stroke-width="6.4" stroke-linecap="round" filter="url(#vqlabGlow)">
+    <path d="M17 17 L32 46"/>
+    <path d="M47 17 L32 46"/>
+  </g>
+  <!-- two input nodes (the two measurement bases) -->
+  <circle cx="17" cy="17" r="3.1" fill="#34dcea"/>
+  <circle cx="47" cy="17" r="3.1" fill="#b06cf2"/>
+  <!-- convergence: the glowing quantum node -->
+  <circle cx="32" cy="46" r="5.3" fill="url(#vqlabGrad)" filter="url(#vqlabGlow)"/>
+  <circle cx="32" cy="46" r="2.1" fill="#ecffff"/>
+</svg>

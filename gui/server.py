@@ -29,47 +29,42 @@ from qsim.configurator import configure, domain_schema, list_domains, sweep_of  
 HERE = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 
-SIDE_COLS = ["#7fb3d5", "#e59866", "#aab7b8", "#82c9a0", "#c39bd3", "#f0b27a"]
-
-
-def _figure_b64(domain: str, knobs: dict) -> str:
-    """Sweep the domain's chosen knob (metric vs knob) + a cost-by-side bar."""
+def _sweep_data(domain: str, knobs: dict):
+    """Sweep the domain's chosen knob → arrays for the live chart (+ the current report)."""
     sw = sweep_of(domain)
     rep = configure(domain, knobs)
     xs, ys = [], []
     for v in sw["values"]:
         r = configure(domain, {**knobs, sw["knob"]: v})
+        ok = r.feasible and r.m(sw["metric"]) > 0
         xs.append(v)
-        ys.append(r.m(sw["metric"]) if (r.feasible and r.m(sw["metric"]) > 0) else np.nan)
-    xs, ys = np.array(xs, float), np.array(ys, float)
-
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(10, 3.8),
-                                   gridspec_kw={"width_ratios": [2, 1]})
-    m = np.isfinite(ys)
-    plot = axA.loglog if (sw.get("logy") and sw.get("logx")) else \
-        (axA.semilogy if sw.get("logy") else axA.plot)
-    plot(xs[m], ys[m], "-", color="#2471a3", lw=2)
+        ys.append(r.m(sw["metric"]) if ok else None)
     cur_x = float(knobs.get(sw["knob"], xs[len(xs) // 2]))
-    if rep.feasible and rep.m(sw["metric"]) > 0:
-        axA.plot([cur_x], [rep.m(sw["metric"])], "o", color="#c0392b", ms=9)
-    axA.set_xlabel(sw["label"])
-    axA.set_ylabel(sw["metric_label"])
-    axA.set_title(f"{sw['metric_label']} vs {sw['label']}")
-    axA.grid(alpha=0.25, which="both")
+    cur_ok = rep.feasible and rep.m(sw["metric"]) > 0
+    data = {"knob": sw["knob"], "label": sw["label"], "metric": sw["metric"],
+            "metric_label": sw["metric_label"], "logy": bool(sw.get("logy")),
+            "logx": bool(sw.get("logx")), "x": xs, "y": ys,
+            "current_x": cur_x, "current_y": (rep.m(sw["metric"]) if cur_ok else None)}
+    return data, rep
 
-    bottom, sides = 0.0, list(rep.cost_by_side)
-    for i, side in enumerate(sides):
-        v = rep.cost_by_side[side] / 1e3
-        axB.bar(["BOM"], [v], bottom=[bottom], color=SIDE_COLS[i % len(SIDE_COLS)], label=side)
-        bottom += v
-    axB.set_ylabel("BOM cost (k USD)")
-    axB.set_title(f"BOM = ${rep.bom_total_usd/1e3:,.0f}k")
-    axB.legend(fontsize=7, loc="upper left")
-    axB.grid(alpha=0.25, axis="y")
 
+def _figure_b64_from(data: dict) -> str:
+    """Small PNG of the sweep (kept for API compatibility / non-JS fallback)."""
+    xs = np.array(data["x"], float)
+    ys = np.array([np.nan if v is None else v for v in data["y"]], float)
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    m = np.isfinite(ys)
+    plot = ax.semilogy if data["logy"] else ax.plot
+    plot(xs[m], ys[m], "-", color="#22a7c0", lw=2)
+    if data["current_y"] is not None:
+        ax.plot([data["current_x"]], [data["current_y"]], "o", color="#c0392b", ms=9)
+    ax.set_xlabel(data["label"])
+    ax.set_ylabel(data["metric_label"])
+    ax.set_title(f"{data['metric_label']} vs {data['label']}")
+    ax.grid(alpha=0.25, which="both")
     fig.tight_layout()
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=110)
+    fig.savefig(buf, format="png", dpi=100)
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
@@ -98,9 +93,10 @@ def api_configure():
     domain = data.get("domain", "qkd")
     knobs = data.get("knobs", {})
     try:
-        rep = configure(domain, knobs)
+        sweep, rep = _sweep_data(domain, knobs)
         out = rep.to_dict()
-        out["figure_b64"] = _figure_b64(domain, knobs)
+        out["sweep"] = sweep
+        out["figure_b64"] = _figure_b64_from(sweep)
         return jsonify(out)
     except Exception as e:  # surface bad combos as a message, not a 500
         return jsonify({"error": str(e)}), 400

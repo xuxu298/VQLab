@@ -126,7 +126,7 @@ def _rules(spec, det, src, qber, skr, board):
     if det.key == "ingaas_sd" and spec.distance_km > 80:
         r.append((WARN, f"{spec.distance_km:.0f} km long for InGaAs; SNSPD reaches further"))
     if det.needs_cryostat:
-        r.append((INFO, "SNSPD needs a closed-cycle cryostat (telco DC OK) + pol. control"))
+        r.append((INFO, "SNSPD needs a closed-cycle cryostat + pol. control"))
     if feasible(r):
         r.append((PASS, "all hard constraints satisfied"))
     return r

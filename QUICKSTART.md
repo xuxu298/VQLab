@@ -59,7 +59,7 @@ together** — the core promise of the bench.
 - **Validation suite** — `python -m pytest -q` (every claim above is enforced by a test).
 - **Why this matters & the QKD reference design** — [`README.md`](README.md),
   [`docs/01_architecture_and_bom.md`](docs/01_architecture_and_bom.md).
-- **The QKD hardware moat** (Bob self-differencing gating board: SPICE + schematic + KiCad netlist
+- **The QKD hardware design** (Bob self-differencing gating board: SPICE + schematic + KiCad netlist
   + BOM) — [`docs/03_bob_gating_board.md`](docs/03_bob_gating_board.md).
 - **The kernel architecture** (one engine, many domains) —
   [`docs/02_simulator_kernel_spec.md`](docs/02_simulator_kernel_spec.md).

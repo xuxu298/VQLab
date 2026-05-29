@@ -60,8 +60,8 @@ the corresponding tests if missing):
 
 1. **Validation against new published results** — additional figures we can
    reproduce (more decoy-state papers, different sensor protocols,
-   alternative QC noise models). Each one strengthens the credibility story.
-2. **Documentation, tutorials, teaching material** — VQLab's primary GTM is
+   alternative QC noise models). Each one strengthens the validation evidence.
+2. **Documentation, tutorials, teaching material** — VQLab is built for
    education (universities, labs, students); clear tutorials with
    well-annotated scenarios are gold.
 3. **New domain plugins** — the kernel is intentionally

@@ -1,7 +1,7 @@
 # Bob Detector — Gating / Quenching Board (subsystem H1)
 
 **Version:** v0.1 · **Date:** 2026-05-26
-**Scope:** the hardest, most-differentiating subsystem of the QKD device — the GHz-gated
+**Scope:** the hardest subsystem of the QKD device — the GHz-gated
 InGaAs/InP SPAD front-end with **self-differencing** gate-transient cancellation.
 **Parent:** [`01_architecture_and_bom.md`](01_architecture_and_bom.md) §4.2 (BD2).
 **Validation toolchain:** ngspice (analog sim) + the validated `qsim` finite-key model.
@@ -11,21 +11,20 @@ InGaAs/InP SPAD front-end with **self-differencing** gate-transient cancellation
 > datasheet + measurements before layout. Provenance is cited inline.
 
 > 📖 **Cách đọc:** mỗi phần có bảng/spec tiếng Anh + khối **"Giải thích"** tiếng Việt ngay sau.
-> Đây là board **khó nhất và là lõi moat** của cả dự án — chỗ "tự làm được hay không" quyết định
-> mình có sản phẩm thật hay chỉ đi mua đồ về lắp.
+> Đây là board **khó nhất** của cả thiết kế — phần quyết định đầu dò đơn-photon có chạy được ở
+> tốc độ GHz hay không.
 
 ---
 
-## 0. Why this board is the moat
+## 0. Why this board is the hardest subsystem
 
 The architecture (decoy-BB84, AMZI, fiber) is public knowledge; anyone can buy the optics.
-The defensible engineering is in **making a single-photon detector actually work at GHz rates** —
+The hard engineering is in **making a single-photon detector actually work at GHz rates** —
 and the central obstacle is a purely electrical one that this board solves.
 
-> **Giải thích — tại sao board này là "hào" (moat):** kiến trúc QKD ai cũng biết, linh kiện quang
-> ai cũng mua được. Cái **khó và khác biệt** là làm cho đầu dò đơn-photon chạy được ở tốc độ GHz.
-> Rào cản chính là một vấn đề **thuần điện tử** (xung dội của cổng) mà board này xử lý — làm chủ
-> được nó = làm chủ thứ đối thủ không mua sẵn được. Xem [[qkd_moat_is_execution]].
+> **Giải thích — tại sao board này khó nhất:** kiến trúc QKD ai cũng biết, linh kiện quang
+> ai cũng mua được. Cái **khó** là làm cho đầu dò đơn-photon chạy được ở tốc độ GHz.
+> Rào cản chính là một vấn đề **thuần điện tử** (xung dội của cổng) mà board này xử lý.
 
 ---
 
@@ -35,13 +34,13 @@ and the central obstacle is a purely electrical one that this board solves.
 |---|---|---|---|
 | 1 | Detector channels — 2 vs 4 | **2 channels** | One-way phase/time-bin BB84 (Toshiba/Cambridge style): a single Bob AMZI with 2 output-port detectors. The Z (key) bit comes from the **arrival time-slot** (one detector + time-tagging distinguishes early/late), the X (check) bit from **which port** clicked. 4 detectors (full active basis) doubles SPAD + TDC cost for marginal Phase-1 benefit. Keeps this board to 2 identical channels. |
 | 2 | Sync strategy | **Dedicated 1310 nm optical sync, WDM-combined onto the same dark fiber** | A bright 1310 nm pulse + fast PIN + PLL clock recovery is the proven, deterministic metro approach; CWDM-coupling it with the 1550 nm quantum channel avoids leasing a second fiber. Clock-recovery off the quantum channel is too photon-starved; White Rabbit adds Ethernet-timing complexity not needed at metro range. |
-| 3 | Phase-1 demo span | **25 km assumed** (10–50 km envelope) | Drives µ≈0.5 and the detector tuning. **Flag:** the telco confirms the exact dark-fiber span; the qsim sweep (§6) already spans 1–120 km so re-pointing is a one-line change. |
+| 3 | Phase-1 demo span | **25 km assumed** (10–50 km envelope) | Drives µ≈0.5 and the detector tuning. **Flag:** the exact dark-fiber span is set at deployment; the qsim sweep (§6) already spans 1–120 km so re-pointing is a one-line change. |
 
 > **Giải thích — 3 quyết định kiến trúc:** (1) **2 kênh đầu dò** — dùng sơ đồ BB84 pha/time-bin một
 > chiều: 1 giao thoa kế ở Bob + 2 đầu dò ở 2 cổng ra; bit khóa (Z) đọc từ **khe thời gian** photon
 > tới, bit kiểm (X) đọc từ **cổng nào** kêu. 4 đầu dò tốn gấp đôi mà Phase-1 lợi không đáng. (2)
 > **Sync 1310 nm ghép chung sợi** — xung sáng 1310 nm + PIN nhanh + khóa pha, ghép CWDM chung sợi tối
-> với kênh lượng tử 1550 nm để khỏi thuê 2 sợi. (3) **25 km** giả định (telco chốt sau); sim đã quét
+> với kênh lượng tử 1550 nm để khỏi thuê 2 sợi. (3) **25 km** giả định (chốt khi triển khai); sim đã quét
 > 1–120 km nên đổi rất dễ.
 
 ---
@@ -145,7 +144,7 @@ GUI needed — with the netlist as the hand-off.
 
 `hardware/bob_gating_board/layout.py` turns the netlist into a physical board with the KiCad
 `pcbnew` Python API — **no GUI** — encoding the layout choices that set this board's performance
-(the moat, [[qkd_moat_is_execution]]):
+(the execution-critical layout choices):
 
 - **50 Ω controlled-impedance microstrip.** A 4-layer FR4 stackup (signal / inner GND / power /
   signal); the RF trace width is *solved* for 50 Ω from the microstrip model — **0.392 mm** at

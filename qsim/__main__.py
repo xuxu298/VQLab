@@ -7,7 +7,7 @@ Two commands, no configuration:
 
 The self-check configures one example device in each of the four domains (the same defaults the
 GUI loads) and prints a dashboard: headline physics + BOM cost + feasibility. It is the fastest
-way for an outsider — investor, telco engineer, student — to confirm the platform works end to
+way for a newcomer — an engineer or student — to confirm the platform works end to
 end before reading a line of the deep docs.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import sys
 from . import __version__
 from .configurator import configure, domain_schema, list_domains
 
-# what each domain's physics is validated against (the credibility line of the pitch)
+# what each domain's physics is validated against (the independent reference per domain)
 _VALIDATION = {
     "qkd": "Rusca et al. 2018 finite-key SKR figure",
     "sensing": "Budker–Romalis projection-noise limit",

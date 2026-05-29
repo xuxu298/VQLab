@@ -5,7 +5,7 @@ two-rate-equation single-mode laser model (carrier number N, photon number S) tu
 OPTICAL pulse. It quantifies the three things that matter for decoy-BB84:
 
   * optical pulse width (FWHM)            -> must be < 500 ps and fit inside the gate period,
-  * turn-on jitter                        -> from the driver current noise (low jitter = the moat),
+  * turn-on jitter                        -> from the driver current noise (low jitter is the hard part),
   * the off-state between pulses          -> the field must fully decay so each pulse builds from
                                              spontaneous emission => RANDOM optical phase (security).
 

@@ -8,7 +8,7 @@
 * phase randomiser needed). Between pulses the bias sits below threshold so the
 * field fully decays and the next pulse is independent.
 *
-* This netlist is the ELECTRICAL half (the moat is the driver + the parasitics):
+* This netlist is the ELECTRICAL half (the hard part is the driver + the parasitics):
 * a 50-ohm driver pulse, AC-coupled through a bias-tee onto a DC bias current, into
 * a laser-diode load (forward junction + series R + junction C + bond-wire L). It
 * produces the injection-current waveform i(Vsense); simulate.py feeds that into a

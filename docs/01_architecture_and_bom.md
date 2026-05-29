@@ -9,7 +9,7 @@
 > Treat this as the v1 architecture skeleton; the next step is web-verifying long-lead parts.
 
 > 📖 **Cách đọc file này:** mỗi phần có (1) bảng spec kỹ thuật tiếng Anh — đây là bản dùng để
-> pitch và đặt hàng linh kiện; và (2) khối **"Giải thích"** tiếng Việt ngay sau đó — nói rõ phần
+> đặt hàng linh kiện; và (2) khối **"Giải thích"** tiếng Việt ngay sau đó — nói rõ phần
 > đó/linh kiện đó **làm gì, tại sao cần, nếu hỏng thì sao**. Đọc khối Giải thích trước cho dễ hình dung.
 
 ---
@@ -26,7 +26,7 @@ Thiết bị của ta gồm 3 mảng:
 1. **Alice** — máy phát: tạo xung laser, mã hóa bit vào photon, hạ xuống mức ~1 photon, bắn đi.
 2. **Bob** — máy thu: nhận photon, giải mã, đếm bằng đầu dò đơn photon, gắn nhãn thời gian.
 3. **Hậu xử lý + đồng bộ + kênh classical** — hai bên "nói chuyện" qua Ethernet thường để sàng lọc,
-   sửa lỗi, chưng cất ra khóa cuối, rồi giao khóa cho hệ thống của nhà mạng.
+   sửa lỗi, chưng cất ra khóa cuối, rồi giao khóa cho hệ thống mã hóa sử dụng nó.
 
 ---
 
@@ -36,14 +36,14 @@ Thiết bị của ta gồm 3 mảng:
 |---|---|---|
 | Protocol | Decoy-state BB84 (1-decoy, Rusca 2018) | Mature, finite-key proven |
 | Encoding | Time-bin / phase (AMZI) | Robust to fiber polarization drift |
-| Wavelength | 1550.12 nm (ITU DWDM C-band) | 0.2 dB/km, telco infra reuse |
+| Wavelength | 1550.12 nm (ITU DWDM C-band) | 0.2 dB/km, standard fiber infra reuse |
 | Fiber | SMF G.652, dedicated dark fiber (Phase 1) | WDM coexistence = Phase 2 roadmap |
 | Distance | 25 km target, 50 km envelope | Metro, no trusted-node needed |
 | Source intensity μ | ~0.4–0.5 photons/pulse | Optimize in design-validation sim |
 | Clock | Start 100 MHz → 1 GHz | FPGA-paced |
 | Detector (P1) | InGaAs/InP gated SPAD, TEC −40 °C | Upgrade path → SNSPD |
 | Key rate (target) | tens–hundreds kbps @25 km (InGaAs) | Mbps-class after SNSPD upgrade |
-| Standards ref | ETSI GS QKD 014 (key delivery), ITU-T Y.3800 | Pitch credibility / KMS integration |
+| Standards ref | ETSI GS QKD 014 (key delivery), ITU-T Y.3800 | Standards compliance / KMS integration |
 
 > **Giải thích từng thông số:**
 > - **Protocol — Decoy-state BB84:** BB84 là giao thức QKD kinh điển (1984). "Decoy-state" = trộn
@@ -52,7 +52,7 @@ Thiết bị của ta gồm 3 mảng:
 >   với **khóa hữu hạn** (số xung thực tế, không phải vô hạn lý thuyết).
 > - **Encoding — time-bin/phase:** ghi bit vào **thời điểm** hoặc **pha** của xung photon, thay vì
 >   phân cực. Lý do: sợi quang làm xoay phân cực lung tung theo nhiệt/rung → mã phân cực dễ hỏng;
->   time-bin/phase bền hơn nhiều trên hạ tầng telco thật.
+>   time-bin/phase bền hơn nhiều trên hạ tầng sợi quang thật.
 > - **Wavelength — 1550.12 nm:** nằm trong cửa sổ C-band, **suy hao thấp nhất** của sợi quang
 >   (~0.2 dB/km) và trùng đúng lưới bước sóng DWDM viễn thông → tái dùng hạ tầng sẵn có.
 > - **Fiber — G.652 dark fiber:** sợi đơn-mode tiêu chuẩn phổ biến nhất. Phase 1 thuê **sợi tối**
@@ -68,7 +68,7 @@ Thiết bị của ta gồm 3 mảng:
 > - **Key rate:** tốc độ sinh **khóa bí mật** thực tế (bps). InGaAs cho vài chục–vài trăm kbps;
 >   lên SNSPD đạt cỡ Mbps.
 > - **Standards (ETSI/ITU):** tuân chuẩn quốc tế để khóa **cắm thẳng** vào hệ quản lý khóa (KMS)
->   của nhà mạng — đây là thứ telco quan tâm khi nghe pitch.
+>   qua API REST chuẩn.
 
 ---
 
@@ -90,7 +90,7 @@ Thiết bị của ta gồm 3 mảng:
                                                                       │
                 CLASSICAL CHANNEL (Ethernet) ── sift / LDPC EC / privacy amp / auth ──┐
                                                                                       ▼
-                                                          ETSI QKD-014 API → Telco KMS / encryptor
+                                                          ETSI QKD-014 API → KMS / encryptor
 ```
 
 > **Giải thích sơ đồ (đi theo đường photon):**
@@ -104,7 +104,7 @@ Thiết bị của ta gồm 3 mảng:
 > 7. **TDC + FPGA** của Bob gắn nhãn thời gian, đồng bộ đồng hồ với Alice (nhờ **kênh sync 1310 nm**).
 > 8. Hai bên trao đổi qua **kênh classical** (Ethernet thường): **sàng lọc → sửa lỗi LDPC →
 >    khuếch đại bảo mật → xác thực** → ra **khóa chung**.
-> 9. Khóa được giao qua **API ETSI QKD-014** cho **KMS/encryptor** của nhà mạng dùng để mã hóa dữ liệu.
+> 9. Khóa được giao qua **API ETSI QKD-014** cho **KMS/encryptor** dùng để mã hóa dữ liệu.
 
 ---
 
@@ -120,15 +120,14 @@ without redesigning everything.
   - OUT: discriminated detection event (LVDS/LVPECL digital pulse)
   - => FPGA, TDC, sifting, and all post-processing are **detector-agnostic**.
 - **Alice↔Bob classical:** Gigabit Ethernet (SFP), authenticated (Wegman–Carter).
-- **Key output:** ETSI GS QKD 014 REST API to telco KMS.
+- **Key output:** ETSI GS QKD 014 REST API to a KMS.
 
 > **Giải thích — tại sao phần "interface" này quan trọng:**
 > Đây là các **đường biên (chân cắm) chuẩn hóa** giữa các module. Nếu định nghĩa rõ từ đầu thì sau
 > này ta **thay ruột mà không phải đập đi làm lại**. Ví dụ điển hình: khối đầu dò (detector) có đúng
 > 3 chân — *vào: sợi quang + xung nhịp cổng; ra: xung số khi bắt được photon*. Vì giao diện cố định,
 > nên khi nâng cấp từ **InGaAs (rẻ) sang SNSPD (xịn)**, toàn bộ FPGA/TDC/hậu xử lý **giữ nguyên** —
-> chỉ rút module cũ cắm module mới. Đây chính là chiến lược "sim trước → pitch → sản xuất" mà không
-> bị khóa cứng vào một lựa chọn phần cứng.
+> chỉ rút module cũ cắm module mới — thiết kế không bị khóa cứng vào một lựa chọn phần cứng.
 
 ---
 
@@ -304,7 +303,7 @@ without redesigning everything.
 | Sync channel | 1310 nm bright pulse + fast PIN + clock recovery (or White Rabbit) | aligns Alice/Bob clocks |
 | Classical channel | Gigabit Ethernet over SFP | authenticated |
 | Post-processing | sift → LDPC error correction → privacy amp (Toeplitz) → auth (Wegman–Carter) | server or FPGA-offloaded; finite-key Lim 2014 |
-| Key delivery | ETSI GS QKD 014 REST API → telco KMS / encryptor | the integration story telcos care about |
+| Key delivery | ETSI GS QKD 014 REST API → KMS / encryptor | standard key-delivery interface |
 
 > **Giải thích từng khối:**
 > - **Kênh sync (1310 nm):** một bước sóng *khác* mang xung sáng mạnh để Bob **khôi phục đồng hồ** của
@@ -315,8 +314,7 @@ without redesigning everything.
 >   **LDPC** = sửa các bit sai do nhiễu sợi. **Privacy amplification (Toeplitz)** = băm khóa ngắn lại
 >   để **ép phần thông tin Eve có thể đã nghe lén về 0**. **Auth (Wegman–Carter)** = xác thực để Eve
 >   không giả mạo được kênh classical. (Chứng minh an toàn khóa hữu hạn theo Lim 2014.)
-> - **Key delivery (ETSI QKD-014):** giao khóa thành phẩm cho **KMS/encryptor** của nhà mạng qua API
->   REST chuẩn — đây là "câu chuyện tích hợp" mà telco thực sự quan tâm.
+> - **Key delivery (ETSI QKD-014):** giao khóa thành phẩm cho **KMS/encryptor** qua API REST chuẩn.
 
 ---
 
@@ -325,7 +323,7 @@ without redesigning everything.
 | Item | InGaAs (Phase 1) | SNSPD (upgrade) | Impact |
 |---|---|---|---|
 | Drive board | gating + quenching + HV bias | µA bias + RF readout | **replaced** |
-| Cooling | TEC −40 °C (1U) | cryostat 0.8–2.8 K (rack) | **added**, telco DC OK |
+| Cooling | TEC −40 °C (1U) | cryostat 0.8–2.8 K (rack) | **added**, standard rack DC |
 | Polarization | insensitive | sensitive → needs PolCtrl | **added** |
 | η / jitter / dark | 20 %, 100–300 ps, higher | 85–95 %, 15–50 ps, lower | **improves** key rate + reach |
 | Optics-pre-detector | — | — | **unchanged** (+PolCtrl) |
@@ -373,12 +371,12 @@ without redesigning everything.
 | Phase 1 (InGaAs, 2-ch) | ~15–35k | ~5–12k | ~10–30k | **~30–80k / link** |
 | Upgrade (SNSPD) | +1–3k (PolCtrl) | — | +150–400k | **+150–400k** |
 
-(Excludes labor, fiber lease — telco provides; one-time NRE for custom boards.)
+(Excludes labor, fiber lease, and one-time NRE for custom boards.)
 
 > **Giải thích — bảng chi phí (ước lượng độ lớn, mỗi đầu tuyến):** một tuyến QKD cần **2 đầu** (Alice
 > + Bob). Phase 1 dùng InGaAs: khoảng **30–80k USD/đầu**, trong đó đắt nhất là *modulator quang* và
 > *đầu dò*. Nâng cấp SNSPD đội thêm **150–400k** chủ yếu do hệ làm lạnh cryostat. Con số này **chưa**
-> tính công, thuê sợi (nhà mạng lo) và chi phí làm board custom một lần (NRE).
+> tính công, thuê sợi, và chi phí làm board custom một lần (NRE).
 
 ---
 
@@ -387,7 +385,7 @@ without redesigning everything.
 **Open questions — RESOLVED 2026-05-26 in [`03_bob_gating_board.md`](03_bob_gating_board.md) §1:**
 1. ✅ Detector channels — **2** (one-way phase/time-bin BB84: 1 AMZI + 2 port detectors; Z from time-slot, X from port). 4 = marginal Phase-1 benefit.
 2. ✅ Sync strategy — **dedicated 1310 nm optical sync, CWDM-combined onto the same dark fiber** (avoids a second lease; clock-recovery too photon-starved, White Rabbit unneeded at metro).
-3. ✅ Phase-1 span — **25 km assumed** (10–50 km envelope); telco confirms exact span, qsim sweep re-points trivially.
+3. ✅ Phase-1 span — **25 km assumed** (10–50 km envelope); exact span set at deployment, qsim sweep re-points trivially.
 
 **Key risks:**
 - LiNbO₃ modulator bias drift (mitigate: auto-bias controller AE4).

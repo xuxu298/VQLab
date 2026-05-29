@@ -2,7 +2,7 @@
 
 This is the layout step done HEADLESS via the KiCad `pcbnew` Python API (no GUI): it turns the
 captured netlist (`bob_channel.net`, 15 components / 13 nets) into a physical board and encodes the
-parts of the layout that actually set this board's performance — the moat ([[qkd_moat_is_execution]]):
+parts of the layout that actually set this board's performance:
 
   * a 50 Ohm controlled-impedance microstrip stackup (trace width solved for the FR4 stackup),
   * the self-differencing DELAY LINE as a length-tuned meander = exactly one 1.25 GHz gate period
